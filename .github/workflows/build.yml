@@ -41,17 +41,48 @@ jobs:
           mkdir -p assets/suara
           touch assets/suara/nusopa_sound.mp3
 
-      # 6. PENJOLOKAN VERSI (FORCE INJECTION): Menimpa paksa setelan global Android secara mutlak ke versi tertinggi
+      # 6. PENGHANCUR EROR (OVERWRITE CONFIG): Menimpa total isi build.gradle dengan nilai keras (hardcoded) minSdk 23 & compileSdk 35
       - name: Suntik Paksa Versi SDK Android
         run: |
-          echo "flutter.compileSdkVersion=35" >> android/local.properties
-          echo "flutter.minSdkVersion=23" >> android/local.properties
-          echo "flutter.targetSdkVersion=35" >> android/local.properties
-          
-          # Trik tambahan: Mengubah baris build.gradle agar membaca setelan paksaan dari local.properties tadi
-          sed -i 's/compileSdkVersion .*/compileSdkVersion flutter.compileSdkVersion.toInteger()/g' android/app/build.gradle || true
-          sed -i 's/minSdkVersion .*/minSdkVersion flutter.minSdkVersion.toInteger()/g' android/app/build.gradle || true
-          sed -i 's/targetSdkVersion .*/targetSdkVersion flutter.targetSdkVersion.toInteger()/g' android/app/build.gradle || true
+          cat << 'EOF' > android/app/build.gradle
+          plugins {
+              id "com.android.application"
+              id "kotlin-android"
+              id "dev.flutter.flutter-gradle-plugin"
+          }
+
+          android {
+              namespace "com.nusopa.mart"
+              compileSdkVersion 35
+
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+
+              kotlinOptions {
+                  jvmTarget = "17"
+              }
+
+              defaultConfig {
+                  applicationId "com.nusopa.mart"
+                  minSdkVersion 23
+                  targetSdkVersion 35
+                  versionCode flutter.versionCode.toInteger()
+                  versionName flutter.versionName
+              }
+
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.debug
+                  }
+              }
+          }
+
+          flutter {
+              source '../..'
+          }
+          EOF
 
       # 7. Mengunduh semua pustaka yang tertulis di pubspec.yaml Anda
       - name: Install Pustaka (Dependencies)
@@ -61,7 +92,7 @@ jobs:
       - name: Cetak Logo Ikon Aplikasi Otomatis
         run: flutter pub run flutter_launcher_icons
 
-      # 9. Proses utama merakit aplikasi menjadi file APK siap instal (Mode Rilis)
+      # 9. Proses utama merakit aplikasi menjadi file APK siap instal
       - name: Proses Perakitan APK (Build Release)
         run: flutter build apk --release --no-tree-shake-icons
 
