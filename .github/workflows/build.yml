@@ -31,23 +31,36 @@ jobs:
           channel: 'stable'
           flutter-version: '3.22.0'
 
-      # 4. REVISI JITU: Memaksa pembuatan folder Android dengan nama proyek yang diizinkan Dart!
+      # 4. Membuat kerangka folder Android asli di memori server
       - name: Buat Paksa Kerangka Folder Android Native
         run: flutter create . --platforms=android --project-name=nusopa_mart
 
-      # 5. Mengunduh semua pustaka yang tertulis di pubspec.yaml Anda
+      # 5. FIX SUARA: Membuat folder assets/suara & menyuntikkan file mp3 kosong otomatis agar pubspec tidak eror
+      - name: Amankan Aset Folder Suara
+        run: |
+          mkdir -p assets/suara
+          touch assets/suara/nusopa_sound.mp3
+
+      # 6. FIX SDK VERSION: Mengganti minSdk menjadi 23 & compileSdk menjadi 35 secara otomatis lewat skrip bash
+      - name: Suntik Konfigurasi SDK Android Premium
+        run: |
+          sed -i 's/minSdkVersion .*/minSdkVersion 23/g' android/app/build.gradle
+          sed -i 's/compileSdkVersion .*/compileSdkVersion 35/g' android/app/build.gradle
+          sed -i 's/minSdkVersion = .*/minSdkVersion = 23/g' android/local.properties || true
+
+      # 7. Mengunduh semua pustaka yang tertulis di pubspec.yaml Anda
       - name: Install Pustaka (Dependencies)
         run: flutter pub get
 
-      # 6. Memicu robot pembangun untuk memotong logo.png menjadi ikon aplikasi Android resmi
+      # 8. Memicu robot pembangun untuk memotong logo.png menjadi ikon aplikasi Android resmi
       - name: Cetak Logo Ikon Aplikasi Otomatis
         run: flutter pub run flutter_launcher_icons
 
-      # 7. Proses utama merakit aplikasi menjadi file APK siap instal
+      # 9. Proses utama merakit aplikasi menjadi file APK siap instal
       - name: Proses Perakitan APK (Build Release)
-        run: flutter build apk --release
+        run: flutter build apk --release --no-tree-shake-icons
 
-      # 8. Memanen hasil rakitan dan memajangnya di halaman GitHub agar bisa Anda unduh
+      # 10. Memanen hasil rakitan dan memajangnya di halaman GitHub agar bisa Anda unduh
       - name: Upload File APK Siap Pakai
         uses: actions/upload-artifact@v4
         with:
