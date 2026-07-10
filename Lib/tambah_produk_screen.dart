@@ -4,6 +4,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:geolocator/geolocator.dart';
+import '../services/jarak_service.dart'; // Mengimpor utilitas hitung jarak GPS
 
 class TambahProdukScreen extends StatefulWidget {
   const TambahProdukScreen({super.key});
@@ -22,17 +24,54 @@ class _TambahProdukScreenState extends State<TambahProdukScreen> {
   bool _isLoading = false;
   final ImagePicker _picker = ImagePicker();
 
-  // Fungsi mengambil gambar dari galeri HP seller
+  // UPGRADE: Fungsi pintar memunculkan opsi Kamera Fisik atau Galeri HP
   Future<void> _pilihGambarDagangan() async {
-    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
-    if (pickedFile != null) {
-      setState(() {
-        _imageFile = File(pickedFile.path);
-      });
-    }
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: Colors.blue),
+                title: const Text('Ambil dari Galeri HP'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final XFile? pickedFile = await _picker.pickImage(
+                    source: ImageSource.gallery, 
+                    imageQuality: 70,
+                  );
+                  if (pickedFile != null) {
+                    setState(() {
+                      _imageFile = File(pickedFile.path);
+                    });
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Colors.orange),
+                title: const Text('Potret Langsung via Kamera Fisik'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final XFile? pickedFile = await _picker.pickImage(
+                    source: ImageSource.camera, 
+                    imageQuality: 70,
+                  );
+                  if (pickedFile != null) {
+                    setState(() {
+                      _imageFile = File(pickedFile.path);
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
-  // Fungsi utama validasi kuota tiket dan upload produk ke Firebase
+  // Fungsi utama validasi kuota tiket, rekam koordinat GPS, dan upload produk
   void _simpanProdukKeFirestore() async {
     if (!_formKey.currentState!.validate() || _imageFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -62,21 +101,28 @@ class _TambahProdukScreenState extends State<TambahProdukScreen> {
         return;
       }
 
-      // 2. UNGHAH FOTO PRODUK KE FIREBASE STORAGE
+      // 2. UPGRADE: Tangkap Titik Koordinat GPS Toko Seller Saat Ini
+      Position? posisiToko = await JarakService.ambilLokasiSekarang();
+      double latitudeToko = posisiToko != null ? posisiToko.latitude : 0.0;
+      double longitudeToko = posisiToko != null ? posisiToko.longitude : 0.0;
+
+      // 3. UNGGAH FOTO PRODUK KE FIREBASE STORAGE
       String namaFile = 'products/${user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
       Reference storageRef = FirebaseStorage.instance.ref().child(namaFile);
       UploadTask uploadTask = storageRef.putFile(_imageFile!);
       TaskSnapshot snapshot = await uploadTask;
       String downloadUrl = await snapshot.ref.getDownloadURL();
 
-      // 3. SIMPAN INFORMASI DATA KE FIREBASE FIRESTORE
+      // 4. SIMPAN DATA LENGKAP + KOORDINAT GPS KE FIRESTORE
       await FirebaseFirestore.instance.collection('products').add({
         'seller_id': user.uid,
         'nama_produk': _namaController.text.trim(),
         'harga': int.parse(_hargaController.text.trim()),
         'deskripsi': _deskripsiController.text.trim(),
         'foto_url': downloadUrl,
-        'jarak': '0.0 km', // Nilai dasar sebelum dipasang rumus gps jarak terdekat
+        'latitude': latitudeToko,   // Menyimpan data garis lintang gps
+        'longitude': longitudeToko, // Menyimpan data garis bujur gps
+        'jarak': '0.0 km',          // Nilai dasar (akan dikalkulasi dinamis di beranda pembeli)
         'dibuat_pada': Timestamp.now(),
       });
 
@@ -114,7 +160,7 @@ class _TambahProdukScreenState extends State<TambahProdukScreen> {
               children: [
                 CircularProgressIndicator(),
                 SizedBox(height: 15),
-                Text('Sedang mengunggah foto ke database awan...'),
+                Text('Menangkap titik GPS & mengunggah data ke awan...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
               ],
             ))
           : SingleChildScrollView(
@@ -147,7 +193,7 @@ class _TambahProdukScreenState extends State<TambahProdukScreen> {
                                 children: [
                                   Icon(Icons.add_a_photo_outlined, size: 45, color: Colors.blue.shade700),
                                   const SizedBox(height: 8),
-                                  const Text('Ketuk untuk pilih foto dari galeri HP', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                                  const Text('Ketuk untuk foto langsung atau ambil dari galeri HP', style: TextStyle(fontSize: 13, color: Colors.grey)),
                                 ],
                               ),
                       ),
@@ -184,25 +230,3 @@ class _TambahProdukScreenState extends State<TambahProdukScreen> {
                             ),
                           ],
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-
-                    // TOMBOL AKSI SUBMIT
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue.shade700,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(double.infinity, 50),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      onPressed: _simpanProdukKeFirestore,
-                      child: const Text('PAJANG BARANG DI BERANDA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-    );
-  }
-}
