@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'admin_dashboard_screen.dart'; // Mengimpor halaman dashboard admin Anda
 
 class ProfilScreen extends StatefulWidget {
   const ProfilScreen({super.key});
@@ -12,6 +13,9 @@ class ProfilScreen extends StatefulWidget {
 class _ProfilScreenState extends State<ProfilScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // Silakan ganti email di bawah ini dengan email akun admin rahasia Anda
+  final String emailAdminRahasia = "admin.nusopamart@gmail.com";
 
   // Fungsi aktivasi toko instan untuk pembeli yang mau jadi seller
   void _aktivasiTokoSeller(String uid) async {
@@ -200,8 +204,3 @@ class _ProfilScreenState extends State<ProfilScreen> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                                       decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(6)),
-                                      child: Text('$kuotaTiket Tiket', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                                    )
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
