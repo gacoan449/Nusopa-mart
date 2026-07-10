@@ -41,13 +41,9 @@ jobs:
           mkdir -p assets/suara
           touch assets/suara/nusopa_sound.mp3
 
-      # 6. FIX KOTLIN & SDK 35 (SUNTIKAN AKURAT): Mengunci versi Kotlin ke 1.9.0 dan SDK ke 35 agar mematuhi syarat audioplayers
-      - name: Suntik Paksa Versi SDK & Kotlin Terupdate
+      # 6. SUNTIKAN AKURAT SDK 34 STABLE: Mengunci total kompilasi ke SDK 34 yang bebas dari bug corrupt file Google
+      - name: Suntik Paksa Versi SDK Android Stable
         run: |
-          # Perbarui versi Kotlin di settings.gradle bawaan Flutter modern menjadi 1.9.0
-          sed -i 's/id "org.jetbrains.kotlin.android" version .*/id "org.jetbrains.kotlin.android" version "1.9.0" apply false/g' android/settings.gradle || true
-          
-          # Tulis ulang build.gradle dengan compileSdkVersion 35 yang bersih
           cat << 'EOF' > android/app/build.gradle
           plugins {
               id "com.android.application"
@@ -57,7 +53,7 @@ jobs:
 
           android {
               namespace "com.nusopa.mart"
-              compileSdkVersion 35
+              compileSdkVersion 34
 
               compileOptions {
                   sourceCompatibility JavaVersion.VERSION_17
@@ -71,7 +67,7 @@ jobs:
               defaultConfig {
                   applicationId "com.nusopa.mart"
                   minSdkVersion 23
-                  targetSdkVersion 35
+                  targetSdkVersion 34
                   versionCode 1           
                   versionName "1.0.0"     
               }
@@ -96,15 +92,11 @@ jobs:
       - name: Cetak Logo Ikon Aplikasi Otomatis
         run: flutter pub run flutter_launcher_icons
 
-      # 9. PEMBERSIH CACHE KUNCI: Memaksa Gradle membersihkan sisa unduhan file rusak sebelum merakit
-      - name: Bersihkan Antrean Kompilasi (Gradle Clean)
-        run: cd android && ./gradlew clean && cd ..
-
-      # 10. Proses utama merakit aplikasi menjadi file APK siap instal
+      # 9. Proses utama merakit aplikasi menjadi file APK siap instal
       - name: Proses Perakitan APK (Build Release)
         run: flutter build apk --release --no-tree-shake-icons
 
-      # 11. Memanen hasil rakitan dan memajangnya di halaman GitHub agar bisa Anda unduh
+      # 10. Memanen hasil rakitan dan memajangnya di halaman GitHub agar bisa Anda unduh
       - name: Upload File APK Siap Pakai
         uses: actions/upload-artifact@v4
         with:
