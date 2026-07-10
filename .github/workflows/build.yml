@@ -31,9 +31,9 @@ jobs:
           channel: 'stable'
           flutter-version: '3.22.0'
 
-      # 4. KUNCI JAWABAN: Membuat paksa kerangka folder Android asli jika belum ada di GitHub Anda!
+      # 4. REVISI JITU: Memaksa pembuatan folder Android dengan nama proyek yang diizinkan Dart!
       - name: Buat Paksa Kerangka Folder Android Native
-        run: flutter create . --platforms=android
+        run: flutter create . --platforms=android --project-name=nusopa_mart
 
       # 5. Mengunduh semua pustaka yang tertulis di pubspec.yaml Anda
       - name: Install Pustaka (Dependencies)
