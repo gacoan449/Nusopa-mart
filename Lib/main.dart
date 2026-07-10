@@ -45,8 +45,7 @@ void main() async {
 class NusopaMartApp extends StatelessWidget {
   const NusopaMartApp({super.key});
 
-  // Fungsi pembaruan token dipindahkan ke lokasi statis yang aman agar tidak merusak siklus widget
-  static void perbaruiTokenNotifikasiUser(String uid) async {
+  void _perbaruiTokenNotifikasiUser(String uid) async {
     try {
       String? tokenFcm = await FirebaseMessaging.instance.getToken();
       if (tokenFcm != null) {
@@ -65,7 +64,7 @@ class NusopaMartApp extends StatelessWidget {
       title: 'Nusopa Mart',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        // REVISI SAKTI: Memperbaiki format penulisan ColorScheme agar lolos tanpa fitur eksperimental
+        // PENULISAN RESMI: Bebas dari tanda titik eksperimental dot-shorthands
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
@@ -76,7 +75,7 @@ class NusopaMartApp extends StatelessWidget {
             return const Scaffold(body: Center(child: CircularProgressIndicator()));
           }
           if (snapshot.hasData) {
-            perbaruiTokenNotifikasiUser(snapshot.data!.uid);
+            _perbaruiTokenNotifikasiUser(snapshot.data!.uid);
             return const MainNavigation();
           }
           return const AuthScreen();
