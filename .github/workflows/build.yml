@@ -1,6 +1,5 @@
 name: Rakit Otomatis APK Nusopa Mart
 
-# Skrip ini akan otomatis berjalan setiap kali Anda menyimpan/commit kode di branch main
 on:
   push:
     branches:
@@ -18,33 +17,37 @@ jobs:
       - name: Ambil Kode Repositori
         uses: actions/checkout@v4
 
-      # 2. Memasang bahasa pemrograman Java (Wajib untuk kompilasi Android)
+      # 2. Memasang bahasa pemrograman Java
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      # 3. Memasang Mesin Flutter (Cloud SDK) ke server GitHub
+      # 3. Memasang Mesin Flutter ke server cloud GitHub
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          flutter-version: '3.22.0' # Menggunakan versi stabil pendukung dependensi Anda
+          flutter-version: '3.22.0'
 
-      # 4. Mengunduh semua pustaka yang tertulis di pubspec.yaml Anda
+      # 4. KUNCI JAWABAN: Membuat paksa kerangka folder Android asli jika belum ada di GitHub Anda!
+      - name: Buat Paksa Kerangka Folder Android Native
+        run: flutter create . --platforms=android
+
+      # 5. Mengunduh semua pustaka yang tertulis di pubspec.yaml Anda
       - name: Install Pustaka (Dependencies)
         run: flutter pub get
 
-      # 5. KUNCI: Memicu robot pembangun untuk memotong dan mencetak logo.png menjadi ikon aplikasi HP
+      # 6. Memicu robot pembangun untuk memotong logo.png menjadi ikon aplikasi Android resmi
       - name: Cetak Logo Ikon Aplikasi Otomatis
         run: flutter pub run flutter_launcher_icons
 
-      # 6. Proses utama merakit aplikasi menjadi file APK siap instal (Mode Rilis)
+      # 7. Proses utama merakit aplikasi menjadi file APK siap instal
       - name: Proses Perakitan APK (Build Release)
         run: flutter build apk --release
 
-      # 7. Memanen hasil rakitan dan memajangnya di halaman GitHub agar bisa Anda unduh ke HP
+      # 8. Memanen hasil rakitan dan memajangnya di halaman GitHub agar bisa Anda unduh
       - name: Upload File APK Siap Pakai
         uses: actions/upload-artifact@v4
         with:
