@@ -24,10 +24,27 @@ dependencies:
   # --- FITUR SISTEM LOKASI & RADIAL MAPS ---
   geolocator: ^13.0.2            # Mengambil titik koordinat GPS untuk filter toko terdekat
 
+  # --- FITUR SISTEM NOTIFIKASI SUARA KHUSUS ---
+  firebase_messaging: ^15.0.0          # Menerima sinyal push notification iklan & orderan
+  flutter_local_notifications: ^17.2.1 # Menampilkan pop-up notifikasi + pemicu suara khas
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1     # Robot pembangun ikon logo aplikasi otomatis
+
+# --- KONFIGURASI CETAK LOGO IKON APLIKASI (SHRINK-TO-FIT) ---
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/logo.png"            # Jalur berkas gambar logo Anda di GitHub
+  adaptive_icon_background: "#FFFFFF"          # Warna latar belakang dasar cetakan logo
+  adaptive_icon_foreground: "assets/icon/logo.png"
 
 flutter:
   uses-material-design: true
+  
+  # Mendaftarkan folder aset agar terbaca penuh oleh sistem kompilasi Flutter
+  assets:
+    - assets/icon/
