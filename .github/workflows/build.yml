@@ -23,12 +23,12 @@ jobs:
       with:
         channel: 'stable'
 
-    # SOLUSI PINTAR: Membuat folder android, buat folder suara tiruan agar tidak error assets, lalu aktifkan coreLibraryDesugaring otomatis!
-    - name: Auto Generate Android and Fix Configuration
+    # REVISI SAKTI UTAMA: Menimpa dan menyuntikkan desugaring Java 8 secara instan & tepat sasaran
+    - name: Auto Generate Android and Inject Custom Gradle Config
       run: |
         flutter create . --platforms=android
         
-        # 1. Membuat folder suara kosong tiruan di server agar tidak eror "unable to find directory"
+        # 1. Membuat folder suara kosong di server biar tidak eror assets
         mkdir -p assets/suara
         touch assets/suara/.gitkeep
         
@@ -36,13 +36,53 @@ jobs:
         sed -i 's/colorScheme: .fromSeed/colorScheme: ColorScheme.fromSeed/g' lib/main.dart
         sed -i 's/mainAxisAlignment: .center/mainAxisAlignment: MainAxisAlignment.center/g' lib/main.dart
         
-        # 3. Suntik Kotlin versi stabil ke Gradle .kts
+        # 3. Suntik Kotlin versi stabil ke Gradle utama
         sed -i 's/id("org.jetbrains.kotlin.android") version ".*/id("org.jetbrains.kotlin.android") version "1.9.22" apply false/' android/build.gradle.kts
         
-        # 4. SUNTIKAN SAKTI: Mengaktifkan coreLibraryDesugaring otomatis di android/app/build.gradle.kts agar library notifikasi lolos compile
-        sed -i '/compileOptions {/i \    defaultConfig {\n        multiDexEnabled = true\n    }\n' android/app/build.gradle.kts
-        sed -i 's/isCoreLibraryDesugaringEnabled = false/isCoreLibraryDesugaringEnabled = true/g' android/app/build.gradle.kts
-        sed -i 's/coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:.*/coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")/' android/app/build.gradle.kts
+        # 4. MENIMPA TOTAL KODE GRADLE APP AGAR FITUR DESUGARING NOTIFIKASI AKTIF PASTI 100%
+        cat << 'EOF' > android/app/build.gradle.kts
+        plugins {
+            id("com.android.application")
+            id("kotlin-android")
+            id("dev.flutter.flutter-gradle-plugin")
+        }
+
+        android {
+            namespace = "com.example.nusopa_mart"
+            compileSdk = flutter.compileSdkVersion
+
+            compileOptions {
+                sourceCompatibility = JavaVersion.VERSION_1_7
+                targetCompatibility = JavaVersion.VERSION_1_7
+                // AKTIFKAN DESUGARING JAVA 8 UNTUK NOTIFIKASI
+                isCoreLibraryDesugaringEnabled = true
+            }
+
+            kotlinOptions {
+                jvmTarget = "1.8"
+            }
+
+            defaultConfig {
+                applicationId = "com.example.nusopa_mart"
+                minSdk = 21
+                targetSdk = flutter.targetSdkVersion
+                versionCode = flutter.versionCode
+                versionName = flutter.versionName
+                multiDexEnabled = true
+            }
+
+            buildTypes {
+                release {
+                    signingConfig = signingConfigs.getByName("debug")
+                }
+            }
+        }
+
+        dependencies {
+            // BAHAN BAKAR WAJIB NOTIFIKASI ANDROID MODERN
+            coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+        }
+        EOF
 
     - name: Install dependencies
       run: flutter pub get
