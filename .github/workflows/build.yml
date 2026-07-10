@@ -35,18 +35,23 @@ jobs:
       - name: Buat Paksa Kerangka Folder Android Native
         run: flutter create . --platforms=android --project-name=nusopa_mart
 
-      # 5. FIX SUARA: Membuat folder assets/suara & menyuntikkan file mp3 kosong otomatis agar pubspec tidak eror
+      # 5. AMANKAN SUARA: Membuat folder assets/suara & menyuntikkan file mp3 kosong otomatis agar pubspec tidak eror
       - name: Amankan Aset Folder Suara
         run: |
           mkdir -p assets/suara
           touch assets/suara/nusopa_sound.mp3
 
-      # 6. FIX SDK VERSION: Mengganti minSdk menjadi 23 & compileSdk menjadi 35 secara otomatis lewat skrip bash
-      - name: Suntik Konfigurasi SDK Android Premium
+      # 6. PENJOLOKAN VERSI (FORCE INJECTION): Menimpa paksa setelan global Android secara mutlak ke versi tertinggi
+      - name: Suntik Paksa Versi SDK Android
         run: |
-          sed -i 's/minSdkVersion .*/minSdkVersion 23/g' android/app/build.gradle
-          sed -i 's/compileSdkVersion .*/compileSdkVersion 35/g' android/app/build.gradle
-          sed -i 's/minSdkVersion = .*/minSdkVersion = 23/g' android/local.properties || true
+          echo "flutter.compileSdkVersion=35" >> android/local.properties
+          echo "flutter.minSdkVersion=23" >> android/local.properties
+          echo "flutter.targetSdkVersion=35" >> android/local.properties
+          
+          # Trik tambahan: Mengubah baris build.gradle agar membaca setelan paksaan dari local.properties tadi
+          sed -i 's/compileSdkVersion .*/compileSdkVersion flutter.compileSdkVersion.toInteger()/g' android/app/build.gradle || true
+          sed -i 's/minSdkVersion .*/minSdkVersion flutter.minSdkVersion.toInteger()/g' android/app/build.gradle || true
+          sed -i 's/targetSdkVersion .*/targetSdkVersion flutter.targetSdkVersion.toInteger()/g' android/app/build.gradle || true
 
       # 7. Mengunduh semua pustaka yang tertulis di pubspec.yaml Anda
       - name: Install Pustaka (Dependencies)
@@ -56,7 +61,7 @@ jobs:
       - name: Cetak Logo Ikon Aplikasi Otomatis
         run: flutter pub run flutter_launcher_icons
 
-      # 9. Proses utama merakit aplikasi menjadi file APK siap instal
+      # 9. Proses utama merakit aplikasi menjadi file APK siap instal (Mode Rilis)
       - name: Proses Perakitan APK (Build Release)
         run: flutter build apk --release --no-tree-shake-icons
 
