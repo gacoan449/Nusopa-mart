@@ -35,13 +35,13 @@ jobs:
       - name: Buat Paksa Kerangka Folder Android Native
         run: flutter create . --platforms=android --project-name=nusopa_mart
 
-      # 5. AMANKAN SUARA: Membuat folder assets/suara & menyuntikkan file mp3 kosong otomatis agar pubspec tidak eror
+      # 5. AMANKAN SUARA: Membuat folder assets/suara & file mp3 kosong agar pubspec tidak eror
       - name: Amankan Aset Folder Suara
         run: |
           mkdir -p assets/suara
           touch assets/suara/nusopa_sound.mp3
 
-      # 6. PENGHANCUR EROR (OVERWRITE CONFIG): Menimpa total isi build.gradle dengan nilai keras (hardcoded) minSdk 23 & compileSdk 35
+      # 6. REVISI ANTI-PUSING: Menimpa build.gradle dengan angka versi manual yang aman dari eror properti
       - name: Suntik Paksa Versi SDK Android
         run: |
           cat << 'EOF' > android/app/build.gradle
@@ -68,8 +68,8 @@ jobs:
                   applicationId "com.nusopa.mart"
                   minSdkVersion 23
                   targetSdkVersion 35
-                  versionCode flutter.versionCode.toInteger()
-                  versionName flutter.versionName
+                  versionCode 1           // Diisi angka langsung agar tidak eror properti
+                  versionName "1.0.0"     // Diisi teks langsung agar aman 100%
               }
 
               buildTypes {
