@@ -23,7 +23,7 @@ jobs:
       with:
         channel: 'stable'
 
-    # REVISI SAKTI PAMUNGKAS: Menghapus total konfigurasi blok Kotlin jadul/baru yang bikin bentrok
+    # REVISI FINAL MUTLAK: Menyamakan Target JVM menggunakan sistem Toolchain 17 resmi rekomendasi Google
     - name: Auto Generate Android and Inject Custom Gradle Config
       run: |
         flutter create . --platforms=android
@@ -39,7 +39,7 @@ jobs:
         # 3. Suntik Kotlin versi stabil ke Gradle utama
         sed -i 's/id("org.jetbrains.kotlin.android") version ".*/id("org.jetbrains.kotlin.android") version "1.9.22" apply false/' android/build.gradle.kts
         
-        # 4. STRATEGI JITU: Menyusun isi gradle app yang super bersih tanpa blok kotlinOptions atau compilerOptions yang rawan bentrok
+        # 4. KUNCI TOOLCHAIN 17: Menyamakan target Java dan Kotlin ke versi 17 secara otomatis dan sah
         cat << 'EOF' > android/app/build.gradle.kts
         plugins {
             id("com.android.application")
@@ -51,9 +51,10 @@ jobs:
             namespace = "com.example.nusopa_mart"
             compileSdk = flutter.compileSdkVersion
 
+            // SOLUSI MUTLAK: Menyelaraskan tugas Java dan Kotlin ke satu komando JDK 17
             compileOptions {
-                sourceCompatibility = JavaVersion.VERSION_1_8
-                targetCompatibility = JavaVersion.VERSION_1_8
+                sourceCompatibility = JavaVersion.VERSION_17
+                targetCompatibility = JavaVersion.VERSION_17
                 isCoreLibraryDesugaringEnabled = true
             }
 
@@ -71,6 +72,11 @@ jobs:
                     signingConfig = signingConfigs.getByName("debug")
                 }
             }
+        }
+
+        // PAKSA KOTLIN MENGGUNAKAN JALUR TOOLCHAIN JAVA 17 AGAR SINKRON 100%
+        kotlin {
+            jvmToolchain(17)
         }
 
         dependencies {
