@@ -1,0 +1,52 @@
+name: Rakit Otomatis APK Nusopa Mart
+
+# Skrip ini akan otomatis berjalan setiap kali Anda menyimpan/commit kode di branch main
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Mengambil seluruh kode dari repositori GitHub Anda
+      - name: Ambil Kode Repositori
+        uses: actions/checkout@v4
+
+      # 2. Memasang bahasa pemrograman Java (Wajib untuk kompilasi Android)
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      # 3. Memasang Mesin Flutter (Cloud SDK) ke server GitHub
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version: '3.22.0' # Menggunakan versi stabil pendukung dependensi Anda
+
+      # 4. Mengunduh semua pustaka yang tertulis di pubspec.yaml Anda
+      - name: Install Pustaka (Dependencies)
+        run: flutter pub get
+
+      # 5. KUNCI: Memicu robot pembangun untuk memotong dan mencetak logo.png menjadi ikon aplikasi HP
+      - name: Cetak Logo Ikon Aplikasi Otomatis
+        run: flutter pub run flutter_launcher_icons
+
+      # 6. Proses utama merakit aplikasi menjadi file APK siap instal (Mode Rilis)
+      - name: Proses Perakitan APK (Build Release)
+        run: flutter build apk --release
+
+      # 7. Memanen hasil rakitan dan memajangnya di halaman GitHub agar bisa Anda unduh ke HP
+      - name: Upload File APK Siap Pakai
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nusopa-Mart-Release-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
