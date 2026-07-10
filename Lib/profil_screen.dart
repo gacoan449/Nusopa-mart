@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'admin_dashboard_screen.dart'; // Mengimpor halaman dashboard admin Anda
+import 'bantuan_screen.dart';         // Mengimpor halaman pusat bantuan & chat AI
 
 class ProfilScreen extends StatefulWidget {
   const ProfilScreen({super.key});
@@ -89,7 +90,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
                             child: CircleAvatar(
                               radius: 29,
                               backgroundColor: Colors.blue.shade50,
-                              child: Icon(Icons.person, size: 40, color: Colors.blue.shade700),
+                              child: const Icon(Icons.person, size: 40, color: Colors.blue),
                             ),
                           ),
                           const SizedBox(width: 15),
@@ -106,7 +107,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.2),
+                                    color: Colors.white.withAlpha(51),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
