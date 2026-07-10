@@ -21,6 +21,9 @@ dependencies:
   carousel_slider_plus: ^1.0.2   # Spanduk banner promo bergerak otomatis biar ramai
   url_launcher: ^6.3.0           # Membuka link cekresi luar secara otomatis
 
+  # --- FITUR SISTEM LOKASI & RADIAL MAPS ---
+  geolocator: ^13.0.2            # Mengambil titik koordinat GPS untuk filter toko terdekat
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
