@@ -41,8 +41,8 @@ jobs:
           mkdir -p assets/suara
           touch assets/suara/nusopa_sound.mp3
 
-      # 6. REVISI ANTI-PUSING: Menimpa build.gradle dengan angka versi manual yang aman dari eror properti
-      - name: Suntik Paksa Versi SDK Android
+      # 6. PENURUNAN VERSION KE SDK 34: Mengunci compile dan target ke 34 agar terhindar dari bug file rusak SDK 35
+      - name: Suntik Paksa Versi SDK Android Stable
         run: |
           cat << 'EOF' > android/app/build.gradle
           plugins {
@@ -53,7 +53,7 @@ jobs:
 
           android {
               namespace "com.nusopa.mart"
-              compileSdkVersion 35
+              compileSdkVersion 34    // Diturunkan ke 34 agar bebas bug server cloud
 
               compileOptions {
                   sourceCompatibility JavaVersion.VERSION_17
@@ -67,9 +67,9 @@ jobs:
               defaultConfig {
                   applicationId "com.nusopa.mart"
                   minSdkVersion 23
-                  targetSdkVersion 35
-                  versionCode 1           // Diisi angka langsung agar tidak eror properti
-                  versionName "1.0.0"     // Diisi teks langsung agar aman 100%
+                  targetSdkVersion 34  // Diturunkan ke 34 agar stabil 100%
+                  versionCode 1           
+                  versionName "1.0.0"     
               }
 
               buildTypes {
