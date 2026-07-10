@@ -18,7 +18,7 @@ dependencies:
   # --- FITUR VISUAL & OPERASIONAL MARKETPLACE ---
   image_picker: ^1.1.2           # Mengambil foto dagangan dari galeri HP seller
   firebase_storage: ^12.0.0      # Tempat menyimpan file gambar produk di cloud
-  carousel_slider_plus: ^7.1.2   # REVISI KUNCI 1: Versi ditingkatkan mengikuti saran server
+  carousel_slider_plus: ^7.1.2   # Versi ditingkatkan mengikuti saran server
   url_launcher: ^6.3.0           # Membuka link cekresi luar secara otomatis
 
   # --- FITUR SISTEM LOKASI & RADIAL MAPS ---
@@ -29,7 +29,7 @@ dependencies:
   flutter_local_notifications: ^17.2.1 # Menampilkan pop-up notifikasi + pemicu suara khas
 
   # --- PEMUTAR SUARA JALUR CODING DART (LIB) ---
-  audioplayers: ^6.0.0          # Memutar suara notifikasi lewat folder assets asli
+  audioplayers: ^5.2.1          # REVISI KUNCI: Diturunkan ke 5.2.1 agar stabil di SDK 34 tanpa bug server
 
 dev_dependencies:
   flutter_test:
@@ -40,7 +40,7 @@ dev_dependencies:
 # --- KONFIGURASI CETAK LOGO IKON APLIKASI (SHRINK-TO-FIT) ---
 flutter_launcher_icons:
   android: "launcher_icon"
-  ios: false                             # REVISI KUNCI 2: Dimatikan menjadi false karena proyek murni Android
+  ios: false                             # Dimatikan menjadi false karena proyek murni Android
   image_path: "assets/icon/logo.png"            # Jalur berkas gambar logo Anda di GitHub
   adaptive_icon_background: "#FFFFFF"          # Warna latar belakang dasar cetakan logo
   adaptive_icon_foreground: "assets/icon/logo.png"
@@ -51,4 +51,4 @@ flutter:
   # Mendaftarkan folder aset agar terbaca penuh oleh sistem kompilasi Flutter
   assets:
     - assets/icon/
-    - assets/suara/             # KUNCI: Mendaftarkan folder suara kustom Anda
+    - assets/suara/             # Mendaftarkan folder suara kustom Anda
