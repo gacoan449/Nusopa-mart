@@ -23,7 +23,7 @@ jobs:
       with:
         channel: 'stable'
 
-    # REVISI SAKTI UTAMA: Menimpa dan menyuntikkan desugaring Java 8 secara instan & tepat sasaran
+    # REVISI SAKTI FINAL: Menimpa konfigurasi Gradle dengan standar CompilerOptions terbaru masa kini
     - name: Auto Generate Android and Inject Custom Gradle Config
       run: |
         flutter create . --platforms=android
@@ -39,7 +39,7 @@ jobs:
         # 3. Suntik Kotlin versi stabil ke Gradle utama
         sed -i 's/id("org.jetbrains.kotlin.android") version ".*/id("org.jetbrains.kotlin.android") version "1.9.22" apply false/' android/build.gradle.kts
         
-        # 4. MENIMPA TOTAL KODE GRADLE APP AGAR FITUR DESUGARING NOTIFIKASI AKTIF PASTI 100%
+        # 4. REVISI PENULISAN GRADLE APP MENGIKUTI STANDAR AGP TERBARU (BEBAS KOTLINOPTIONS KUNO)
         cat << 'EOF' > android/app/build.gradle.kts
         plugins {
             id("com.android.application")
@@ -52,14 +52,14 @@ jobs:
             compileSdk = flutter.compileSdkVersion
 
             compileOptions {
-                sourceCompatibility = JavaVersion.VERSION_1_7
-                targetCompatibility = JavaVersion.VERSION_1_7
-                // AKTIFKAN DESUGARING JAVA 8 UNTUK NOTIFIKASI
+                sourceCompatibility = JavaVersion.VERSION_1_8
+                targetCompatibility = JavaVersion.VERSION_1_8
                 isCoreLibraryDesugaringEnabled = true
             }
 
-            kotlinOptions {
-                jvmTarget = "1.8"
+            // REVISI DI SINI: Menggunakan compilerOptions DSL terbaru agar tidak memicu Script Compilation Error
+            compilerOptions {
+                jvmTarget.set(org.jetbrains.kotlin.gradient.dsl.JvmTarget.JVM_1_8)
             }
 
             defaultConfig {
@@ -79,7 +79,6 @@ jobs:
         }
 
         dependencies {
-            // BAHAN BAKAR WAJIB NOTIFIKASI ANDROID MODERN
             coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
         }
         EOF
