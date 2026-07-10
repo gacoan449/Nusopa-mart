@@ -73,47 +73,25 @@ jobs:
           }
           EOF
 
-      # 7. KUNCI KEMENANGAN (MANIFEST OVERRIDE): Mengganti isi AndroidManifest.xml dengan hak paksa agar Firebase Auth lolos dari minSdk 21
-      - name: Paksa Lolos Izin Manifest Android
+      # 7. JEBOLAN FORCE VERSI GRADLE (SUNTIKAN MUTLAK): Memaksa Gradle menimpa paksa minSdk lewat skrip injeksi lokal
+      - name: Paksa Lolos Batasan SDK Android Modern
         run: |
-          cat << 'EOF' > android/app/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://android.com"
-              xmlns:tools="http://android.com"
-              package="com.nusopa.mart">
-              
-              <uses-sdk tools:overrideLibrary="com.google.firebase.auth, com.google.firebase.auth.internal, io.flutter.plugins.firebase.auth"/>
-              
-              <uses-permission android:name="android.permission.INTERNET"/>
-              <uses-permission android:name="android.permission.CAMERA"/>
-              <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-              <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+          # Buat file injeksi penimpa versi Gradle secara paksa
+          cat << 'EOF' > android/app/config.gradle
+          ext {
+              compileSdkVersion = 34
+              targetSdkVersion = 34
+              minSdkVersion = 23
+          }
+          EOF
 
-              <application
-                  android:label="Nusopa Mart"
-                  android:name="${applicationName}"
-                  android:icon="@mipmap/ic_launcher">
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true"
-                      android:launchMode="singleTop"
-                      android:theme="@style/LaunchTheme"
-                      android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|screenLayout|locale|layoutDirection|fontScale|screenHeight|menu|density"
-                      android:hardwareAccelerated="true"
-                      android:windowSoftInputMode="adjustResize">
-                      <meta-data
-                        android:name="io.flutter.embedding.android.NormalTheme"
-                        android:resource="@style/NormalTheme"
-                        />
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN"/>
-                          <category android:name="android.intent.category.LAUNCHER"/>
-                      </intent-filter>
-                  </activity>
-                  <meta-data
-                      android:name="flutterEmbedding"
-                      android:value="2" />
-              </application>
-          </manifest>
+          # Masukkan perintah paksaan tersebut ke dalam file build.gradle aplikasi Anda
+          cat << 'EOF' >> android/app/build.gradle
+          
+          // Skrip Sakti Penjebol Versi SDK untuk Firebase Auth
+          android.defaultConfig.minSdkVersion = 23
+          android.defaultConfig.targetSdkVersion = 34
+          android.compileSdkVersion = 34
           EOF
 
       # 8. Mengunduh semua pustaka yang tertulis di pubspec.yaml Anda
