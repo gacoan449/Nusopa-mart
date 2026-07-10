@@ -23,15 +23,26 @@ jobs:
       with:
         channel: 'stable'
 
-    # SOLUSI JITU: Membuat folder android, lalu otomatis membetulkan isi file lib/main.dart sampel bawaan flutter yang rusak
-    - name: Auto Generate Android and Fix Sample Main Dart
+    # SOLUSI PINTAR: Membuat folder android, buat folder suara tiruan agar tidak error assets, lalu aktifkan coreLibraryDesugaring otomatis!
+    - name: Auto Generate Android and Fix Configuration
       run: |
         flutter create . --platforms=android
-        sed -i 's/id("org.jetbrains.kotlin.android") version ".*/id("org.jetbrains.kotlin.android") version "1.9.22" apply false/' android/build.gradle.kts
         
-        # Trik Sembuhin baris sample main.dart tiruan dari flutter CLI
+        # 1. Membuat folder suara kosong tiruan di server agar tidak eror "unable to find directory"
+        mkdir -p assets/suara
+        touch assets/suara/.gitkeep
+        
+        # 2. Sembuhin baris sample main.dart bawaan Flutter CLI yang rusak titik eksperimental
         sed -i 's/colorScheme: .fromSeed/colorScheme: ColorScheme.fromSeed/g' lib/main.dart
         sed -i 's/mainAxisAlignment: .center/mainAxisAlignment: MainAxisAlignment.center/g' lib/main.dart
+        
+        # 3. Suntik Kotlin versi stabil ke Gradle .kts
+        sed -i 's/id("org.jetbrains.kotlin.android") version ".*/id("org.jetbrains.kotlin.android") version "1.9.22" apply false/' android/build.gradle.kts
+        
+        # 4. SUNTIKAN SAKTI: Mengaktifkan coreLibraryDesugaring otomatis di android/app/build.gradle.kts agar library notifikasi lolos compile
+        sed -i '/compileOptions {/i \    defaultConfig {\n        multiDexEnabled = true\n    }\n' android/app/build.gradle.kts
+        sed -i 's/isCoreLibraryDesugaringEnabled = false/isCoreLibraryDesugaringEnabled = true/g' android/app/build.gradle.kts
+        sed -i 's/coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:.*/coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")/' android/app/build.gradle.kts
 
     - name: Install dependencies
       run: flutter pub get
