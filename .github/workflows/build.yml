@@ -41,9 +41,57 @@ jobs:
           mkdir -p assets/suara
           touch assets/suara/nusopa_sound.mp3
 
-      # 6. SUNTIKAN AKURAT SDK 34 STABLE: Mengunci total kompilasi ke SDK 34 yang bebas dari bug corrupt file Google
-      - name: Suntik Paksa Versi SDK Android Stable
+      # 6. FIX KOTLIN UTAMAKAN ROOT (OVERWRITE GRADLE): Menimpa paksa berkas build.gradle root dengan Kotlin 1.9.0
+      - name: Suntik Paksa Versi Kotlin Terupdate
         run: |
+          cat << 'EOF' > android/build.gradle
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+
+          rootProject.buildDir = '../build'
+          subprojects {
+              project.buildDir = "${rootProject.buildDir}/${project.name}"
+          }
+          subprojects {
+              project.evaluationDependsOn(':app')
+          }
+
+          tasks.register("clean", Delete) {
+              delete rootProject.buildDir
+          }
+          EOF
+
+          # Melakukan suntikan versi Kotlin 1.9.0 langsung ke settings.gradle tingkat atas
+          cat << 'EOF' > android/settings.gradle
+          pluginManagement {
+              def flutterSdkPath = {
+                  def properties = new Properties()
+                  def file = new File(rootRootDir, "local.properties")
+                  if (file.exists()) {
+                      properties.load(file.newDataInputStream())
+                  }
+                  def sdkPath = properties.getProperty("flutter.sdk")
+                  assert sdkPath != null, "flutter.sdk not set in local.properties"
+                  return sdkPath
+              }()
+
+              includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+          }
+
+          plugins {
+              id "dev.flutter.flutter-gradle-plugin" version "1.0.0"
+              id "com.android.application" version "8.1.0" apply false
+              id "org.jetbrains.kotlin.android" version "1.9.0" apply false // PAKSA KOTLIN BARU DI SINI
+          }
+
+          include ":app"
+          EOF
+
+          # Tulis ulang build.gradle aplikasi dengan target SDK 34 stabil
           cat << 'EOF' > android/app/build.gradle
           plugins {
               id "com.android.application"
