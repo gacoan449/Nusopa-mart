@@ -1,114 +1,42 @@
-name: Rakit Otomatis APK Nusopa Mart
+name: Flutter Build APK Release
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+    branches: [ "main" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Mengambil seluruh kode dari repositori GitHub Anda
-      - name: Ambil Kode Repositori
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      # 2. Memasang bahasa pemrograman Java
-      - name: Setup Java JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
+    - name: Set up Java JDK
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
 
-      # 3. Memasang Mesin Flutter ke server cloud GitHub
-      - name: Setup Flutter SDK
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-          flutter-version: '3.22.0'
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        channel: 'stable'
 
-      # 4. Membuat kerangka folder Android asli bawaan pabrik Flutter
-      - name: Buat Paksa Kerangka Folder Android Native
-        run: flutter create . --platforms=android --project-name=nusopa_mart
+    # LANGKAH FORCE/PAKSA: Membuat folder android dan langsung memaksa Kotlin menggunakan versi terbaru biar tidak bentrok
+    - name: Auto Generate Android with Custom Kotlin
+      run: |
+        flutter create . --platforms=android
+        sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "1.9.0"/' android/build.gradle
 
-      # 5. AMANKAN SUARA: Membuat folder assets/suara & file mp3 kosong otomatis agar pubspec tidak eror
-      - name: Amankan Aset Folder Suara
-        run: |
-          mkdir -p assets/suara
-          touch assets/suara/nusopa_sound.mp3
+    - name: Install dependencies
+      run: flutter pub get
 
-      # 6. SUNTIKAN JITU (TEXT OVERWRITE): Menyisipkan paksa versi Kotlin 1.9.0 ke berkas internal pabrik
-      - name: Suntik Paksa Versi Kotlin Terupdate
-        run: |
-          cat << 'EOF' > android/build.gradle
-          buildscript {
-              ext.kotlin_version = '1.9.0'
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
+    - name: Build APK Release
+      run: flutter build apk --release --no-tree-shake-icons
 
-          allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-
-          rootProject.buildDir = '../build'
-          subprojects {
-              project.buildDir = "${rootProject.buildDir}/${project.name}"
-          }
-          subprojects {
-              project.evaluationDependsOn(':app')
-          }
-
-          tasks.register("clean", Delete) {
-              delete rootProject.buildDir
-          }
-          EOF
-
-      # 7. JEBOLAN FORCE VERSI GRADLE (SUNTIKAN MUTLAK): Memaksa Gradle menimpa paksa minSdk lewat skrip injeksi lokal
-      - name: Paksa Lolos Batasan SDK Android Modern
-        run: |
-          # Buat file injeksi penimpa versi Gradle secara paksa
-          cat << 'EOF' > android/app/config.gradle
-          ext {
-              compileSdkVersion = 34
-              targetSdkVersion = 34
-              minSdkVersion = 23
-          }
-          EOF
-
-          # Masukkan perintah paksaan tersebut ke dalam file build.gradle aplikasi Anda
-          cat << 'EOF' >> android/app/build.gradle
-          
-          // Skrip Sakti Penjebol Versi SDK untuk Firebase Auth
-          android.defaultConfig.minSdkVersion = 23
-          android.defaultConfig.targetSdkVersion = 34
-          android.compileSdkVersion = 34
-          EOF
-
-      # 8. Mengunduh semua pustaka yang tertulis di pubspec.yaml Anda
-      - name: Install Pustaka (Dependencies)
-        run: flutter pub get
-
-      # 9. Memicu robot pembangun untuk memotong logo.png menjadi ikon aplikasi Android resmi
-      - name: Cetak Logo Ikon Aplikasi Otomatis
-        run: flutter pub run flutter_launcher_icons
-
-      # 10. Proses utama merakit aplikasi menjadi file APK siap instal
-      - name: Proses Perakitan APK (Build Release)
-        run: flutter build apk --release --no-tree-shake-icons
-
-      # 11. Memanen hasil rakitan dan memajangnya di halaman GitHub agar bisa Anda unduh
-      - name: Upload File APK Siap Pakai
-        uses: actions/upload-artifact@v4
-        with:
-          name: Nusopa-Mart-Release-APK
-          path: build/app/outputs/flutter-apk/app-release.apk
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-release
+        path: build/app/outputs/flutter-apk/app-release.apk
