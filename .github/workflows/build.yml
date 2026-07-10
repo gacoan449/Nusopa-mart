@@ -41,9 +41,40 @@ jobs:
           mkdir -p assets/suara
           touch assets/suara/nusopa_sound.mp3
 
-      # 6. SUNTIK SDK 34 AMAN: Menyesuaikan build.gradle aplikasi agar terkunci di SDK 34 yang stabil
-      - name: Suntik Paksa Versi SDK Android Stable
+      # 6. SUNTIKAN JITU (TEXT OVERWRITE): Menyisipkan paksa versi Kotlin 1.9.0 dan SDK 34 ke berkas internal pabrik
+      - name: Suntik Paksa Versi SDK & Kotlin Terupdate
         run: |
+          # 1. Mengunci versi Kotlin global di tingkat paling atas build.gradle bawaan pabrik
+          cat << 'EOF' > android/build.gradle
+          buildscript {
+              ext.kotlin_version = '1.9.0'
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+
+          rootProject.buildDir = '../build'
+          subprojects {
+              project.buildDir = "${rootProject.buildDir}/${project.name}"
+          }
+          subprojects {
+              project.evaluationDependsOn(':app')
+          }
+
+          tasks.register("clean", Delete) {
+              delete rootProject.buildDir
+          }
+          EOF
+
+          # 2. Menyelaraskan angka minimal SDK ke 23 dan kompilasi ke 34 agar audioplayers & firebase sinkron
           sed -i 's/compileSdkVersion .*/compileSdkVersion 34/g' android/app/build.gradle || true
           sed -i 's/minSdkVersion .*/minSdkVersion 23/g' android/app/build.gradle || true
           sed -i 's/targetSdkVersion .*/targetSdkVersion 34/g' android/app/build.gradle || true
@@ -56,9 +87,9 @@ jobs:
       - name: Cetak Logo Ikon Aplikasi Otomatis
         run: flutter pub run flutter_launcher_icons
 
-      # 9. PROSES REVISI AKURAT: Menggunakan flag resmi --gradle-project-option agar Kotlin 1.9.0 dipaksa jalan
+      # 9. PROSES MERAKIT: Menjalankan perintah kompilasi murni yang bersih tanpa flag aneh
       - name: Proses Perakitan APK (Build Release)
-        run: flutter build apk --release --no-tree-shake-icons --gradle-project-option=PkotlinVersion=1.9.0
+        run: flutter build apk --release --no-tree-shake-icons
 
       # 10. Memanen hasil rakitan dan memajangnya di halaman GitHub agar bisa Anda unduh
       - name: Upload File APK Siap Pakai
