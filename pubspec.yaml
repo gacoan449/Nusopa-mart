@@ -1,4 +1,4 @@
-name: Nusopa_mart
+name: nusopa_mart
 description: "Aplikasi Marketplace Multi-Vendor Sederhana Kelas Tunggal Berbasis Tiket"
 publish_to: 'none'
 version: 1.0.0+1
@@ -18,7 +18,7 @@ dependencies:
   # --- FITUR VISUAL & OPERASIONAL MARKETPLACE ---
   image_picker: ^1.1.2           # Mengambil foto dagangan dari galeri HP seller
   firebase_storage: ^12.0.0      # Tempat menyimpan file gambar produk di cloud
-  carousel_slider_plus: ^1.0.2   # Spanduk banner promo bergerak otomatis biar ramai
+  carousel_slider_plus: ^7.1.2   # REVISI KUNCI: Upgrade versi sesuai rekomendasi sistem Flutter
   url_launcher: ^6.3.0           # Membuka link cekresi luar secara otomatis
 
   # --- FITUR SISTEM LOKASI & RADIAL MAPS ---
