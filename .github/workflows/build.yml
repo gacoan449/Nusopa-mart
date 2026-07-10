@@ -56,9 +56,9 @@ jobs:
       - name: Cetak Logo Ikon Aplikasi Otomatis
         run: flutter pub run flutter_launcher_icons
 
-      # 9. PROSES UTAMA (TRIK JEBOL KOTLIN): Merakit APK sambil menyuntikkan paksa versi Kotlin 1.9.0 lewat argumen build
+      # 9. PROSES REVISI AKURAT: Menggunakan flag resmi --gradle-project-option agar Kotlin 1.9.0 dipaksa jalan
       - name: Proses Perakitan APK (Build Release)
-        run: flutter build apk --release --no-tree-shake-icons --PkotlinVersion=1.9.0
+        run: flutter build apk --release --no-tree-shake-icons --gradle-project-option=PkotlinVersion=1.9.0
 
       # 10. Memanen hasil rakitan dan memajangnya di halaman GitHub agar bisa Anda unduh
       - name: Upload File APK Siap Pakai
