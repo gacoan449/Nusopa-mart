@@ -23,11 +23,11 @@ jobs:
       with:
         channel: 'stable'
 
-    # LANGKAH FORCE/PAKSA: Membuat folder android dan langsung memaksa Kotlin menggunakan versi terbaru biar tidak bentrok
-    - name: Auto Generate Android with Custom Kotlin
+    # REVISI SAKTI: Menyesuaikan target ke build.gradle.kts dan menyuntikkan plugin Kotlin versi terbaru
+    - name: Auto Generate Android with Custom Kotlin DSL
       run: |
         flutter create . --platforms=android
-        sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "1.9.0"/' android/build.gradle
+        sed -i 's/id("org.jetbrains.kotlin.android") version ".*/id("org.jetbrains.kotlin.android") version "1.9.22" apply false/' android/build.gradle.kts
 
     - name: Install dependencies
       run: flutter pub get
