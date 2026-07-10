@@ -41,10 +41,9 @@ jobs:
           mkdir -p assets/suara
           touch assets/suara/nusopa_sound.mp3
 
-      # 6. SUNTIKAN JITU (TEXT OVERWRITE): Menyisipkan paksa versi Kotlin 1.9.0 dan SDK 34 ke berkas internal pabrik
-      - name: Suntik Paksa Versi SDK & Kotlin Terupdate
+      # 6. SUNTIKAN JITU (TEXT OVERWRITE): Menyisipkan paksa versi Kotlin 1.9.0 ke berkas internal pabrik
+      - name: Suntik Paksa Versi Kotlin Terupdate
         run: |
-          # 1. Mengunci versi Kotlin global di tingkat paling atas build.gradle bawaan pabrik
           cat << 'EOF' > android/build.gradle
           buildscript {
               ext.kotlin_version = '1.9.0'
@@ -74,24 +73,62 @@ jobs:
           }
           EOF
 
-          # 2. Menyelaraskan angka minimal SDK ke 23 dan kompilasi ke 34 agar audioplayers & firebase sinkron
-          sed -i 's/compileSdkVersion .*/compileSdkVersion 34/g' android/app/build.gradle || true
-          sed -i 's/minSdkVersion .*/minSdkVersion 23/g' android/app/build.gradle || true
-          sed -i 's/targetSdkVersion .*/targetSdkVersion 34/g' android/app/build.gradle || true
+      # 7. KUNCI KEMENANGAN (MANIFEST OVERRIDE): Mengganti isi AndroidManifest.xml dengan hak paksa agar Firebase Auth lolos dari minSdk 21
+      - name: Paksa Lolos Izin Manifest Android
+        run: |
+          cat << 'EOF' > android/app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://android.com"
+              xmlns:tools="http://android.com"
+              package="com.nusopa.mart">
+              
+              <uses-sdk tools:overrideLibrary="com.google.firebase.auth, com.google.firebase.auth.internal, io.flutter.plugins.firebase.auth"/>
+              
+              <uses-permission android:name="android.permission.INTERNET"/>
+              <uses-permission android:name="android.permission.CAMERA"/>
+              <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+              <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
-      # 7. Mengunduh semua pustaka yang tertulis di pubspec.yaml Anda
+              <application
+                  android:label="Nusopa Mart"
+                  android:name="${applicationName}"
+                  android:icon="@mipmap/ic_launcher">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:launchMode="singleTop"
+                      android:theme="@style/LaunchTheme"
+                      android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|screenLayout|locale|layoutDirection|fontScale|screenHeight|menu|density"
+                      android:hardwareAccelerated="true"
+                      android:windowSoftInputMode="adjustResize">
+                      <meta-data
+                        android:name="io.flutter.embedding.android.NormalTheme"
+                        android:resource="@style/NormalTheme"
+                        />
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+                  <meta-data
+                      android:name="flutterEmbedding"
+                      android:value="2" />
+              </application>
+          </manifest>
+          EOF
+
+      # 8. Mengunduh semua pustaka yang tertulis di pubspec.yaml Anda
       - name: Install Pustaka (Dependencies)
         run: flutter pub get
 
-      # 8. Memicu robot pembangun untuk memotong logo.png menjadi ikon aplikasi Android resmi
+      # 9. Memicu robot pembangun untuk memotong logo.png menjadi ikon aplikasi Android resmi
       - name: Cetak Logo Ikon Aplikasi Otomatis
         run: flutter pub run flutter_launcher_icons
 
-      # 9. PROSES MERAKIT: Menjalankan perintah kompilasi murni yang bersih tanpa flag aneh
+      # 10. Proses utama merakit aplikasi menjadi file APK siap instal
       - name: Proses Perakitan APK (Build Release)
         run: flutter build apk --release --no-tree-shake-icons
 
-      # 10. Memanen hasil rakitan dan memajangnya di halaman GitHub agar bisa Anda unduh
+      # 11. Memanen hasil rakitan dan memajangnya di halaman GitHub agar bisa Anda unduh
       - name: Upload File APK Siap Pakai
         uses: actions/upload-artifact@v4
         with:
