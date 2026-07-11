@@ -23,8 +23,8 @@ jobs:
       with:
         channel: 'stable'
 
-    # EKSEKUSI FINAL: Membuat folder android, lalu mengaktifkan desugaring Java 8 untuk paket notifikasi secara otomatis
-    - name: Auto Generate Android and Enable Desugaring
+    # EKSEKUSI FINAL 2026: Mengunci Semua Lini Aplikasi dan Pustaka Luar ke Android SDK 36 secara Mutlak
+    - name: Auto Generate Android and Inject Custom Gradle Config
       run: |
         flutter create . --platforms=android
         
@@ -35,7 +35,7 @@ jobs:
         # 2. Suntik Kotlin versi stabil ke Gradle utama (.kts)
         sed -i 's/id("org.jetbrains.kotlin.android") version ".*/id("org.jetbrains.kotlin.android") version "1.9.22" apply false/' android/build.gradle.kts
         
-        # 3. MENIMPA TOTAL KODE GRADLE APP AGAR FITUR DESUGARING NOTIFIKASI AKTIF PASTI 100%
+        # 3. KUNCI TOTAL SDK 36: Memaksa aplikasi inti (:app) menggunakan compileSdk 36 dan targetSdk 36 + Fitur Desugaring Notifikasi
         cat << 'EOF' > android/app/build.gradle.kts
         plugins {
             id("com.android.application")
@@ -45,19 +45,20 @@ jobs:
 
         android {
             namespace = "com.example.nusopa_mart"
-            compileSdk = 34
+            
+            // JEBOL GEMBOK SDK 36 DI SINI
+            compileSdk = 36
 
             compileOptions {
                 sourceCompatibility = JavaVersion.VERSION_1_8
                 targetCompatibility = JavaVersion.VERSION_1_8
-                // REVISI KUNCI: Mengaktifkan desugaring Java 8 agar library notifikasi lokal lolos compile
                 isCoreLibraryDesugaringEnabled = true
             }
 
             defaultConfig {
                 applicationId = "com.example.nusopa_mart"
                 minSdk = 21
-                targetSdk = 34
+                targetSdk = 36
                 versionCode = flutter.versionCode
                 versionName = flutter.versionName
                 multiDexEnabled = true
@@ -71,8 +72,21 @@ jobs:
         }
 
         dependencies {
-            // REVISI KUNCI: Mengunduh pustaka desugar pendukung resmi dari Google
             coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+        }
+        EOF
+
+        # 4. SAPU JAGAT MASSAL: Memaksa url_launcher, geolocator, image_picker, browser, core, dll ikut naik kelas ke SDK 36 otomatis
+        cat << 'EOF' >> android/build.gradle.kts
+        subprojects {
+            plugins.withType<com.android.build.gradle.api.AndroidBasePlugin> {
+                configure<com.android.build.gradle.BaseExtension> {
+                    compileSdkVersion(36)
+                    defaultConfig {
+                        targetSdkVersion(36)
+                    }
+                }
+            }
         }
         EOF
 
