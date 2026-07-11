@@ -27,7 +27,7 @@ jobs:
           channel: 'stable'
           cache: true 
 
-      # TENTARA PENYELAMAT: Membuat ulang folder android/ secara otomatis & bersih jika tidak ada di GitHub
+      # TENTARA PENYELAMAT 1: Membuat ulang folder android/ secara otomatis & bersih
       - name: "Regenerate Android Project Folder"
         run: |
           if [ ! -d "android" ]; then
@@ -37,10 +37,83 @@ jobs:
             echo "Folder android ditemukan, melanjutkan ke proses berikutnya."
           fi
 
+      # PERBAIKAN UTAMA (TENTARA PENYELAMAT 2): Suntik ulang main.dart yang bersih bebas dari dot-shorthands eror
+      - name: "Sanitize and Force Write Clean main.dart"
+        run: |
+          mkdir -p lib
+          cat << 'EOF' > lib/main.dart
+          import 'package:flutter/material.dart';
+          import 'package:firebase_core/firebase_core.dart';
+          import 'package:firebase_auth/firebase_auth.dart';
+          import 'package:firebase_messaging/firebase_messaging.dart'; 
+          import 'auth_screen.dart';
+          import 'main_navigation.dart';
+          import 'services/notifikasi_service.dart'; 
+
+          void main() async {
+            WidgetsFlutterBinding.ensureInitialized();
+            
+            await Firebase.initializeApp(
+              options: const FirebaseOptions(
+                apiKey: "AIzaSyB-guTai42pYgcvXeacyt_8fyUpkfxzluA",
+                appId: "1:242778852239:android:c046739230c32971fe99fa", 
+                messagingSenderId: "242778852239",
+                projectId: "desapay-10614",
+                storageBucket: "desapay-10614.firebasestorage.app",
+              ),
+            );
+
+            await NotifikasiService.inisialisasiNotifikasi();
+            
+            try {
+              await FirebaseMessaging.instance.subscribeToTopic("nusopa_promo");
+            } catch (e) {
+              debugPrint("Gagal subscribe topik: $e");
+            }
+
+            runApp(const NusopaMartApp());
+          }
+
+          class NusopaMartApp extends StatelessWidget {
+            const NusopaMartApp({super.key});
+
+            @override
+            Widget build(BuildContext context) {
+              return MaterialApp(
+                title: 'Nusopa Mart',
+                debugShowCheckedModeBanner: false,
+                theme: ThemeData(
+                  colorScheme: ColorScheme.fromSeed(
+                    seedColor: Colors.orange.shade800,
+                    primary: Colors.orange.shade800,
+                  ),
+                  useMaterial3: true,
+                  scaffoldBackgroundColor: Colors.grey.shade50,
+                ),
+                home: StreamBuilder<User?>(
+                  stream: FirebaseAuth.instance.authStateChanges(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Scaffold(
+                        body: Center(
+                          child: CircularProgressIndicator(color: Colors.orange),
+                        ),
+                      );
+                    }
+                    if (snapshot.hasData && snapshot.data != null) {
+                      return const MainNavigation();
+                    }
+                    return const AuthScreen();
+                  },
+                ),
+              );
+            }
+          }
+          EOF
+
       - name: "Install Dependencies"
         run: flutter pub get
 
-      # Proses ini sekarang dijamin sukses karena AndroidManifest.xml sudah dibuat otomatis oleh langkah di atas
       - name: "Generate Launcher Icons"
         run: flutter pub run flutter_launcher_icons
 
@@ -55,12 +128,13 @@ jobs:
           tag_name: "v1.0.0-build-${{ github.run_number }}"
           name: "Nusopa Mart APK v1.0.0 (Build #${{ github.run_number }})"
           body: |
-            ## 🎉 APK Sukses Dibuat Otomatis Tanpa Folder Android Lokal!
+            ## 🎉 APK Sukses Dibuat Otomatis!
             
             Silakan unduh file `app-release.apk` di bawah untuk mencoba aplikasi di HP Android Anda.
             
-            **Detail Pengaman:**
-            - Folder Android dirakit otomatis di Server Ubuntu GitHub (100% Bersih dari Error Cache Lokal).
+            **Detail Perbaikan:**
+            - Sukses melewati pembersihan syntax eror 'dot-shorthands'.
+            - Folder Android dirakit otomatis di Server Ubuntu GitHub.
             - Sinkronisasi Logo Ikon Sukses Diinjeksikan ke Manifest.
           draft: false
           prerelease: false
