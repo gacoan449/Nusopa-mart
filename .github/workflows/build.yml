@@ -23,7 +23,7 @@ jobs:
       with:
         channel: 'stable'
 
-    # REVISI FINAL MUTLAK: Menyamakan Target JVM menggunakan sistem Toolchain 17 resmi rekomendasi Google
+    # FORCE UPGRADE MASAL: Memaksa aplikasi utama dan seluruh plugin luar (audioplayers) wajib menggunakan SDK 34
     - name: Auto Generate Android and Inject Custom Gradle Config
       run: |
         flutter create . --platforms=android
@@ -39,7 +39,7 @@ jobs:
         # 3. Suntik Kotlin versi stabil ke Gradle utama
         sed -i 's/id("org.jetbrains.kotlin.android") version ".*/id("org.jetbrains.kotlin.android") version "1.9.22" apply false/' android/build.gradle.kts
         
-        # 4. KUNCI TOOLCHAIN 17: Menyamakan target Java dan Kotlin ke versi 17 secara otomatis dan sah
+        # 4. Kunci SDK Aplikasi Utama ke versi 34
         cat << 'EOF' > android/app/build.gradle.kts
         plugins {
             id("com.android.application")
@@ -49,9 +49,8 @@ jobs:
 
         android {
             namespace = "com.example.nusopa_mart"
-            compileSdk = flutter.compileSdkVersion
+            compileSdk = 34
 
-            // SOLUSI MUTLAK: Menyelaraskan tugas Java dan Kotlin ke satu komando JDK 17
             compileOptions {
                 sourceCompatibility = JavaVersion.VERSION_17
                 targetCompatibility = JavaVersion.VERSION_17
@@ -61,7 +60,7 @@ jobs:
             defaultConfig {
                 applicationId = "com.example.nusopa_mart"
                 minSdk = 21
-                targetSdk = flutter.targetSdkVersion
+                targetSdk = 34
                 versionCode = flutter.versionCode
                 versionName = flutter.versionName
                 multiDexEnabled = true
@@ -74,13 +73,26 @@ jobs:
             }
         }
 
-        // PAKSA KOTLIN MENGGUNAKAN JALUR TOOLCHAIN JAVA 17 AGAR SINKRON 100%
         kotlin {
             jvmToolchain(17)
         }
 
         dependencies {
             coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+        }
+        EOF
+
+        # 5. TRIK SAKTI PAMUNGKAS: Menyisir dan mendongkrak paksa audioplayers dll ke compileSdk 34 secara instan
+        cat << 'EOF' >> android/build.gradle.kts
+        subprojects {
+            afterEvaluate {
+                if (project.hasProperty("android")) {
+                    val android = project.extensions.getByName("android") as com.android.build.gradle.BaseExtension
+                    if (android.compileSdkVersion == "android-33" || android.compileSdkVersion == "33") {
+                        android.compileSdkVersion(34)
+                    }
+                }
+            }
         }
         EOF
 
