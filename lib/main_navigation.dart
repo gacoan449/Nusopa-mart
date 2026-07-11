@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Tambahkan impor ini jika belum ada
+import 'package:cloud_firestore/cloud_firestore.dart'; // Tambahkan impor ini jika belum ada
+import 'package:firebase_messaging/firebase_messaging.dart'; // Tambahkan impor ini jika belum ada
 import 'home_screen.dart';
 import 'live_screen.dart';       
 import 'pesanan_screen.dart';    
@@ -15,7 +18,6 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
-  // Menyusun halaman yang akan dikunci memorinya di latar belakang
   final List<Widget> _pages = [
     const HomeScreen(),       
     const LiveScreen(),       
@@ -24,15 +26,38 @@ class _MainNavigationState extends State<MainNavigation> {
     const ProfilScreen(),     
   ];
 
+  // KODE MASUK DI SINI: Siklus initState mendeteksi pembukaan navigasi pertama
+  @override
+  void initState() {
+    super.initState();
+    _simpanTokenFcmKeDatabase(); // Eksekusi otomatis satu kali saja
+  }
+
+  // FUNGSI UPDATE FCM TOKEN YANG AMAN DAN HEMAT KUOTA FIRESTORE
+  void _simpanTokenFcmKeDatabase() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        String? token = await FirebaseMessaging.instance.getToken();
+        if (token != null) {
+          // Hanya memperbarui token perangkat tanpa mengganggu widget lain
+          await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+            'fcm_token': token,
+          });
+        }
+      } catch (e) {
+        debugPrint("Token FCM gagal disimpan: $e");
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // PERBAIKAN 1: Menggunakan IndexedStack agar posisi scroll & data Firebase tidak reload ulang saat pindah tab
       body: IndexedStack(
         index: _currentIndex,
         children: _pages,
       ),
-      // PERBAIKAN 2: Menggunakan Theme khusus untuk memberi jarak aman dari navigasi gestur HP modern
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
@@ -52,7 +77,6 @@ class _MainNavigationState extends State<MainNavigation> {
           },
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
-          // PERBAIKAN 3: Mengubah identitas warna dari Biru ke Oranye Premium COD Nusopa
           selectedItemColor: Colors.orange.shade800, 
           unselectedItemColor: Colors.grey.shade400,
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 0.2),
