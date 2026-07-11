@@ -23,19 +23,22 @@ jobs:
       with:
         channel: 'stable'
 
-    # REVISI PAMUNGKAS: Menyelaraskan Target JVM Java dan Kotlin menggunakan sistem Toolchain 17 Resmi
-    - name: Auto Generate Android and Inject Custom Gradle Config
+    # PERBAIKAN URUTAN SAKTI: Jalankan flutter create DULUAN, baru amankan setelan Gradle-nya
+    - name: Auto Generate Android Platform Base
       run: |
         flutter create . --platforms=android
         
-        # 1. Sembuhin baris sample main.dart bawaan Flutter CLI yang rusak titik eksperimental
-        sed -i 's/colorScheme: .fromSeed/colorScheme: ColorScheme.fromSeed/g' lib/main.dart
-        sed -i 's/mainAxisAlignment: .center/mainAxisAlignment: MainAxisAlignment.center/g' lib/main.dart
-        
-        # 2. Suntik Kotlin versi stabil ke Gradle utama (.kts)
+        # Suntik Kotlin versi stabil ke Gradle utama (.kts)
         sed -i 's/id("org.jetbrains.kotlin.android") version ".*/id("org.jetbrains.kotlin.android") version "1.9.22" apply false/' android/build.gradle.kts
-        
-        # 3. KUNCI TOTAL SDK 36 & JAVA COMPATIBILITY 17
+
+    # LANGKAH PENYELAMATAN: Ambil kembali (Force Checkout) file main.dart asli milik Anda dari GitHub agar tidak hilang tertimpa
+    - name: Restore Original Source Code
+      run: |
+        git checkout HEAD -- lib/main.dart
+
+    # SELESAIKAN INTEGRASI GRADLE APP UTAMA 
+    - name: Inject Custom Gradle Config
+      run: |
         cat << 'EOF' > android/app/build.gradle.kts
         plugins {
             id("com.android.application")
@@ -47,7 +50,6 @@ jobs:
             namespace = "com.example.nusopa_mart"
             compileSdk = 36
 
-            // REVISI KUNCI: Menyelaraskan kompilasi Java ke versi 17 agar sejalan dengan Kotlin
             compileOptions {
                 sourceCompatibility = JavaVersion.VERSION_17
                 targetCompatibility = JavaVersion.VERSION_17
@@ -70,7 +72,6 @@ jobs:
             }
         }
 
-        // REVISI KUNCI: Memaksa compiler Kotlin menggunakan jalur Toolchain 17 biar sinkron 100%
         kotlin {
             jvmToolchain(17)
         }
@@ -80,7 +81,7 @@ jobs:
         }
         EOF
 
-        # 4. SAPU JAGAT MASSAL: Memaksa semua sub-project/plugin luar ikut naik kelas ke SDK 36 otomatis
+        # SAPU JAGAT MASSAL PLUGIN LUAR
         cat << 'EOF' >> android/build.gradle.kts
         subprojects {
             plugins.withType<com.android.build.gradle.api.AndroidBasePlugin> {
