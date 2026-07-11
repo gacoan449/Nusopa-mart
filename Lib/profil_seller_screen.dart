@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'admin_dashboard_screen.dart'; 
+import 'pesanan_screen.dart'; // Impor untuk menghubungkan operasional toko
 
 class ProfilScreen extends StatefulWidget {
   const ProfilScreen({super.key});
@@ -13,22 +15,27 @@ class _ProfilScreenState extends State<ProfilScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Fungsi untuk mengubah status pembeli biasa menjadi Seller di Firebase
+  // PERBAIKAN 3: Email akun admin utama untuk membuka gerbang verifikasi tiket QRIS
+  final String emailAdminRahasia = "admin.nusopamart@gmail.com";
+
+  // Fungsi aktivasi toko instan dengan bonus 5 tiket awal
   void _bukaTokoSederhana(String uid) async {
     try {
       await _firestore.collection('users').doc(uid).update({
         'role': 'seller',
-        'kuota_tiket': 5, // Bonus 5 tiket gratis pertama untuk pemicu seller baru!
+        'kuota_tiket': 5, 
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Selamat! Toko Anda berhasil diaktifkan + Bonus 5 Tiket!')),
+          const SnackBar(backgroundColor: Colors.green, content: Text('Selamat! Toko Anda berhasil diaktifkan + Bonus 5 Tiket!')),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal membuka toko: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(backgroundColor: Colors.red, content: Text('Gagal membuka toko: $e')),
+        );
+      }
     }
   }
 
@@ -36,76 +43,86 @@ class _ProfilScreenState extends State<ProfilScreen> {
   Widget build(BuildContext context) {
     final User? currentUser = _auth.currentUser;
 
-    // Jika user belum login di Firebase Auth, tampilkan pesan peringatan
     if (currentUser == null) {
       return const Scaffold(
-        body: Center(child: Text('Silakan login terlebih dahulu di AuthScreen.')),
+        body: Center(child: Text('Silakan login terlebih dahulu.', style: TextStyle(color: Colors.grey))),
       );
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: Colors.grey.shade50,
+      // PERBAIKAN 2: AppBar diubah ke warna identitas Oranye Premium COD Nusopa
       appBar: AppBar(
-        title: const Text('Akun & Kemitraan Toko'),
-        backgroundColor: Colors.blue.shade700,
+        title: const Text('Akun & Kemitraan Toko', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        backgroundColor: Colors.orange.shade800, 
         foregroundColor: Colors.white,
-        elevation: 0,
+        elevation: 1,
         actions: [
-          // Tombol Keluar Log Out Sederhana
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout_rounded, size: 20),
             onPressed: () => _auth.signOut(),
           )
         ],
       ),
-      // Menggunakan StreamBuilder agar data Profil & TIKET tersinkron Realtime dari Firestore
       body: StreamBuilder<DocumentSnapshot>(
         stream: _firestore.collection('users').doc(currentUser.uid).snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: Colors.orange));
           }
           if (!snapshot.hasData || !snapshot.data!.exists) {
             return const Center(child: Text('Data profil tidak ditemukan di database.'));
           }
 
-          // Ambil data dari dokumen Firestore
           var userData = snapshot.data!.data() as Map<String, dynamic>;
           String namaUser = userData['nama'] ?? 'Pengguna Baru';
+          String emailUser = userData['email'] ?? '';
           String role = userData['role'] ?? 'buyer';
           int kuotaTiket = userData['kuota_tiket'] ?? 0;
           bool isSeller = (role == 'seller');
+          
+          // Deteksi hak akses admin melalui email atau field role
+          bool isAdmin = (emailUser == emailAdminRahasia || role == 'admin');
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(12.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 1. KARTU IDENTITAS PENGGUNA
                 Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6), side: BorderSide(color: Colors.grey.shade200)),
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(12.0),
                     child: Row(
                       children: [
                         CircleAvatar(
-                          radius: 30,
-                          backgroundColor: Colors.blue.shade50,
-                          child: Icon(Icons.person, size: 35, color: Colors.blue.shade700),
+                          radius: 26,
+                          backgroundColor: Colors.orange.shade50,
+                          child: Icon(Icons.person, size: 30, color: Colors.orange.shade800),
                         ),
-                        const SizedBox(width: 15),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(namaUser, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                              Text(namaUser, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                               const SizedBox(height: 4),
-                              Text(
-                                isSeller ? "Mitra Seller Jualan" : "Akun Pembeli Retail",
-                                style: TextStyle(
-                                  color: isSeller ? Colors.green.shade700 : Colors.grey.shade600,
-                                  fontWeight: FontWeight.w600,
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: isAdmin ? Colors.red.shade50 : (isSeller ? Colors.green.shade50 : Colors.grey.shade100),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  isAdmin ? "✦ Akun Admin Utama" : (isSeller ? "✦ Mitra Seller Jualan" : "✦ Akun Pembeli Retail"),
+                                  style: TextStyle(
+                                    color: isAdmin ? Colors.red.shade800 : (isSeller ? Colors.green.shade800 : Colors.grey.shade600),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ],
@@ -115,106 +132,80 @@ class _ProfilScreenState extends State<ProfilScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 25),
+                const SizedBox(height: 16),
 
                 // 2. KONDISI TAMPILAN KHUSUS SELLER (SUDAH BUKA TOKO)
                 if (isSeller) ...[
                   Text(
                     'Manajemen Kuota Toko Anda', 
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.orange.shade900),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   
-                  // KOTAK DOMPET TIKET JALANAN (MENIRU DESAIN BERSIH DESAPAY)
+                  // KOTAK DOMPET TIKET JALANAN (Warna Oranye Senada Beranda)
                   Card(
-                    color: Colors.blue.shade700,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                    color: Colors.orange.shade800,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                     child: Padding(
-                      padding: const EdgeInsets.all(20.0),
+                      padding: const EdgeInsets.all(16.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Row(
                             children: [
-                              Icon(Icons.confirmation_number, color: Colors.white70, size: 18),
+                              Icon(Icons.confirmation_number, color: Colors.white70, size: 16),
                               SizedBox(width: 8),
                               Text(
                                 'Sisa Tiket Jualan Aktif',
-                                style: TextStyle(color: Colors.white70, fontSize: 14),
+                                style: TextStyle(color: Colors.white70, fontSize: 13),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 8),
                           Text(
                             '$kuotaTiket Tiket',
-                            style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                            style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 8),
                           const Text(
                             '*1 Tiket otomatis terpotong saat transaksi COD selesai. Isi ulang via QRIS Admin jika tiket mendekati angka 0.',
-                            style: TextStyle(color: Colors.white60, fontSize: 11, height: 1.4),
+                            style: TextStyle(color: Colors.white60, fontSize: 10, height: 1.4),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 14),
                           
-                          // TOMBOL MENU ISI TIKET MANUAL VIA QRIS
                           ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange.shade700,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size(double.infinity, 48),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              backgroundColor: Colors.white,
+                              foregroundColor: Colors.orange.shade900,
+                              minimumSize: const Size(double.infinity, 44),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                              elevation: 0,
                             ),
                             onPressed: () {
-                              // TODO: Navigasi ke halaman BeliTiketScreen() yang kemarin kita rancang
+                              // Navigasi ke halaman BeliTiketScreen Anda
                             },
-                            icon: const Icon(Icons.qr_code_scanner),
-                            label: const Text('BELI TIKET VIA QRIS ADMIN', style: TextStyle(fontWeight: FontWeight.bold)),
+                            icon: const Icon(Icons.qr_code_scanner, size: 18),
+                            label: const Text('BELI TIKET VIA QRIS ADMIN', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
 
-                  // MENU NAVIGASI KELOLA DAGANGAN SELLER
                   Text(
                     'Operasional Toko', 
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.orange.shade900),
                   ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 8),
                   Card(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                    color: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6), side: BorderSide(color: Colors.grey.shade200)),
                     child: Column(
                       children: [
                         ListTile(
-                          leading: const Icon(Icons.add_photo_alternate, color: Colors.orange),
-                          title: const Text('Tambah Produk Baru'),
-                          subtitle: const Text('Upload gambar dan set harga COD'),
-                          trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-                          onTap: () {
-                            // TODO: Arahkan ke Form Tambah Produk
-                          },
-                        ),
-                        const Divider(height: 1),
-                        ListTile(
-                          leading: const Icon(Icons.local_shipping, color: Colors.blue),
-                          title: const Text('Pesanan Masuk & Input Resi'),
-                          subtitle: const Text('Kelola pengiriman kurir manual'),
-                          trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-                          onTap: () {
-                            // TODO: Arahkan ke Daftar Pesanan Toko
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-
-                // 3. KONDISI TAMPILAN KETIKA MASIH JADI PEMBELI BIASA
-                ] else ...[
-                  Text(
-                    'Program Kemitraan Seller', 
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
-                  ),
-                  const SizedBox(height: 10),
-                  Card(
-                    color: Colors.orange.shade50,
+                          leading: Icon(Icons.add_photo_alternate, color: Colors.orange.shade800, size: 20),
+                          title: const Text('Tambah Produk Baru', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                          subtitle: const Text('Upload gambar dan set harga COD', style: TextStyle(fontSize: 11)),
