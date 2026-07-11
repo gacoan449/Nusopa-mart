@@ -23,14 +23,58 @@ jobs:
       with:
         channel: 'stable'
 
-    # Membuat folder android standar bawaan Flutter terbaru secara aman
-    - name: Auto Generate Android and Fix Sample Main Dart
+    # EKSEKUSI FINAL: Membuat folder android, lalu mengaktifkan desugaring Java 8 untuk paket notifikasi secara otomatis
+    - name: Auto Generate Android and Enable Desugaring
       run: |
         flutter create . --platforms=android
         
-        # Sembuhin baris sample main.dart bawaan Flutter CLI yang rusak titik eksperimental
+        # 1. Sembuhin baris sample main.dart bawaan Flutter CLI yang rusak titik eksperimental
         sed -i 's/colorScheme: .fromSeed/colorScheme: ColorScheme.fromSeed/g' lib/main.dart
         sed -i 's/mainAxisAlignment: .center/mainAxisAlignment: MainAxisAlignment.center/g' lib/main.dart
+        
+        # 2. Suntik Kotlin versi stabil ke Gradle utama (.kts)
+        sed -i 's/id("org.jetbrains.kotlin.android") version ".*/id("org.jetbrains.kotlin.android") version "1.9.22" apply false/' android/build.gradle.kts
+        
+        # 3. MENIMPA TOTAL KODE GRADLE APP AGAR FITUR DESUGARING NOTIFIKASI AKTIF PASTI 100%
+        cat << 'EOF' > android/app/build.gradle.kts
+        plugins {
+            id("com.android.application")
+            id("kotlin-android")
+            id("dev.flutter.flutter-gradle-plugin")
+        }
+
+        android {
+            namespace = "com.example.nusopa_mart"
+            compileSdk = 34
+
+            compileOptions {
+                sourceCompatibility = JavaVersion.VERSION_1_8
+                targetCompatibility = JavaVersion.VERSION_1_8
+                // REVISI KUNCI: Mengaktifkan desugaring Java 8 agar library notifikasi lokal lolos compile
+                isCoreLibraryDesugaringEnabled = true
+            }
+
+            defaultConfig {
+                applicationId = "com.example.nusopa_mart"
+                minSdk = 21
+                targetSdk = 34
+                versionCode = flutter.versionCode
+                versionName = flutter.versionName
+                multiDexEnabled = true
+            }
+
+            buildTypes {
+                release {
+                    signingConfig = signingConfigs.getByName("debug")
+                }
+            }
+        }
+
+        dependencies {
+            // REVISI KUNCI: Mengunduh pustaka desugar pendukung resmi dari Google
+            coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+        }
+        EOF
 
     - name: Install dependencies
       run: flutter pub get
