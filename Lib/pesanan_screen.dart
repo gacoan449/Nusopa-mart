@@ -21,63 +21,116 @@ class _PesananScreenState extends State<PesananScreen> with SingleTickerProvider
     _tabController = TabController(length: 2, vsync: this);
   }
 
-  // Fungsi otomatis mengarahkan pembeli ke situs cekresi eksternal gratis
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   void _lacakPaketWeb(String resi) async {
     final Uri url = Uri.parse('https://cekresi.com');
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal membuka browser pelacakan.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal membuka browser pelacakan.')),
+        );
+      }
     }
   }
 
-  // SISI SELLER: Menginput nomor resi paket manual ke Firestore
+  // SISI SELLER: Input resi eksternal aman via Dialog Pop-up
   void _inputResiManual(String orderId, String kurir, String resi) async {
-    if (kurir.isEmpty || resi.isEmpty) {
+    if (kurir.trim().isEmpty || resi.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kurir dan Nomor Resi wajib diisi!')),
+        const SnackBar(backgroundColor: Colors.red, content: Text('Kurir dan Nomor Resi wajib diisi!')),
       );
       return;
     }
-    await _firestore.collection('orders').doc(orderId).update({
-      'status': 'dikirim',
-      'kurir': kurir,
-      'no_resi': resi,
-    });
-    if (mounted) Navigator.pop(context);
+    
+    try {
+      await _firestore.collection('orders').doc(orderId).update({
+        'status': 'dikirim',
+        'kurir': kurir.trim(),
+        'no_resi': resi.trim(),
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(backgroundColor: Colors.green, content: Text('Resi berhasil diperbarui! Paket dalam pengiriman.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal input resi: $e')));
+      }
+    }
   }
 
-  // SISI PEMBELI: Konfirmasi Terima Barang & Potong Otomatis 1 Tiket Jualan Seller
-  void _konfirmasiPesananDiterima({
-    required String orderId,
-    required String sellerId,
-  }) async {
+  // PERBAIKAN 1: Menghapus duplikasi pemotongan tiket (Cukup ubah status saja agar aman)
+  void _konfirmasiPesananDiterima({required String orderId}) async {
     try {
-      // Jalankan Firestore Transaction agar perhitungan kuota tiket aman tanpa bug (Race Condition)
-      await _firestore.runTransaction((transaction) async {
-        DocumentReference orderRef = _firestore.collection('orders').doc(orderId);
-        DocumentReference sellerRef = _firestore.collection('users').doc(sellerId);
-
-        DocumentSnapshot sellerSnapshot = await transaction.get(sellerRef);
-        int kuotaSekarang = sellerSnapshot['kuota_tiket'] ?? 0;
-
-        // Hitung sisa kuota tiket seller dikurangi 1
-        int kuotaBaru = kuotaSekarang - 1;
-        if (kuotaBaru < 0) kuotaBaru = 0; // Mengamankan agar tiket tidak minus
-
-        // Update database sekaligus secara atomik
-        transaction.update(orderRef, {'status': 'selesai'});
-        transaction.update(sellerRef, {'kuota_tiket': kuotaBaru});
+      await _firestore.collection('orders').doc(orderId).update({
+        'status': 'selesai',
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Transaksi Selesai! Terima kasih telah mengonfirmasi.')),
+          const SnackBar(backgroundColor: Colors.green, content: Text('Transaksi Selesai! Terima kasih telah mengonfirmasi.')),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal konfirmasi: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal konfirmasi: $e')));
+      }
     }
+  }
+
+  // PERBAIKAN 2: Dialog interaktif khusus untuk input resi (Solusi Memory Leak)
+  void _bukaDialogInputResi(BuildContext context, String orderId) {
+    final TextEditingController kurirCont = TextEditingController();
+    final TextEditingController resiCont = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        title: const Text('Input Resi Kurir Manual', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: kurirCont,
+              decoration: const InputDecoration(labelText: 'Nama Kurir / Gerai (Misal: J&T, JNE, Titip Tetangga)', labelStyle: TextStyle(fontSize: 12)),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: resiCont,
+              decoration: const InputDecoration(labelText: 'Nomor Resi / Bukti Nota Fisik', labelStyle: TextStyle(fontSize: 12)),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              kurirCont.dispose();
+              resiCont.dispose();
+              Navigator.pop(context);
+            },
+            child: const Text('BATAL', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange.shade800, foregroundColor: Colors.white),
+            onPressed: () {
+              _inputResiManual(orderId, kurirCont.text, resiCont.text);
+              kurirCont.dispose();
+              resiCont.dispose();
+              Navigator.pop(context);
+            },
+            child: const Text('KIRIM RESI'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -86,16 +139,19 @@ class _PesananScreenState extends State<PesananScreen> with SingleTickerProvider
     if (user == null) return const Scaffold(body: Center(child: Text('Silakan login.')));
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Status Transaksi'),
-        backgroundColor: Colors.blue.shade700,
+        title: const Text('Status Transaksi COD', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        backgroundColor: Colors.orange.shade800, // PERBAIKAN 3: Tema Oranye Selaras
         foregroundColor: Colors.white,
+        elevation: 1,
         bottom: TabBar(
           controller: _tabController,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.orange,
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
           tabs: const [
             Tab(text: 'Belanjaan Saya'),
             Tab(text: 'Pesanan Masuk Toko'),
@@ -105,121 +161,77 @@ class _PesananScreenState extends State<PesananScreen> with SingleTickerProvider
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildBuyerOrderList(user.uid),  // Tampilan Sisi Pembeli
-          _buildSellerOrderList(user.uid), // Tampilan Sisi Penjual
+          _buildBuyerOrderList(user.uid),  
+          _buildSellerOrderList(user.uid), 
         ],
       ),
     );
   }
 
-  // ==========================================
-  // WIDGET SISI PEMBELI (BELANJAAN SAYA)
-  // ==========================================
   Widget _buildBuyerOrderList(String uid) {
     return StreamBuilder<QuerySnapshot>(
-      stream: _firestore.collection('orders').where('buyer_id', isEqualTo: uid).snapshots(),
+      stream: _firestore.collection('orders').where('buyer_id', isEqualTo: uid).orderBy('dibuat_pada', descending: true).snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        if (snapshot.hasError) return Center(child: Text('Eror: ${snapshot.error}'));
+        if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: Colors.orange));
+        
         var docs = snapshot.data!.docs;
-        if (docs.isEmpty) return const Center(child: Text('Belum ada riwayat pembelian barang.'));
+        if (docs.isEmpty) return const Center(child: Text('Belum ada riwayat pembelian barang.', style: TextStyle(color: Colors.grey, fontSize: 13)));
 
         return ListView.builder(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           itemCount: docs.length,
           itemBuilder: (context, index) {
             var orderId = docs[index].id;
             var data = docs[index].data() as Map<String, dynamic>;
 
             return Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+              color: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6), side: BorderSide(color: Colors.grey.shade200)),
+              margin: const EdgeInsets.symmetric(vertical: 4),
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Image.network(data['foto_url'] ?? '', width: 50, height: 50, fit: BoxFit.cover),
-                      title: Text(data['nama_produk'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
-                      subtitle: Text('Total COD: Rp ${data['total_harga']} (${data['jumlah_beli']} barang)'),
-                      trailing: Text(
-                        data['status'].toString().toUpperCase(),
-                        style: TextStyle(color: data['status'] == 'selesai' ? Colors.green : Colors.orange, fontWeight: FontWeight.bold, fontSize: 12),
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.between,
+                      children: [
+                        Text('📦 ID: ${orderId.substring(0, min(8, orderId.length))}', style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(color: data['status'] == 'selesai' ? Colors.green.shade50 : Colors.orange.shade50, borderRadius: BorderRadius.circular(4)),
+                          child: Text(
+                            data['status'].toString().toUpperCase(),
+                            style: TextStyle(color: data['status'] == 'selesai' ? Colors.green : Colors.orange.shade900, College: true, fontWeight: FontWeight.bold, fontSize: 10),
+                          ),
+                        ),
+                      ],
                     ),
-                    const Divider(),
+                    const Divider(height: 16),
+                    Row(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: Image.network(
+                            data['foto_url'] ?? '', width: 55, height: 55, fit: BoxFit.cover,
+                            errorBuilder: (context, e, s) => Container(width: 55, height: 55, color: Colors.grey.shade100, child: const Icon(Icons.broken_image, size: 20)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(data['nama_produk'] ?? 'Produk COD', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                              const SizedBox(height: 4),
+                              Text('Total COD: Rp ${data['total_harga']} (${data['jumlah_beli']} Pcs)', style: TextStyle(color: Colors.orange.shade900, fontWeight: FontWeight.bold, fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 16),
                     if (data['status'] == 'perlu_dikirim')
-                      const Text('💬 Menunggu penjual menyerahkan paket ke kurir.', style: TextStyle(fontStyle: FontStyle.italic, fontSize: 12, color: Colors.grey)),
-                    if (data['status'] == 'dikirim') ...[
-                      Text('📦 Kurir: ${data['kurir']} (${data['no_resi']})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade50, foregroundColor: Colors.blue.shade800, dense: true),
-                            onPressed: () => _lacakPaketWeb(data['no_resi']),
-                            icon: const Icon(Icons.search, size: 14),
-                            label: const Text('Lacak Paket'),
-                          ),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white, dense: true),
-                            onPressed: () => _konfirmasiPesananDiterima(orderId: orderId, sellerId: data['seller_id']),
-                            child: const Text('Pesanan Diterima & Bayar COD'),
-                          ),
-                        ],
-                      )
-                    ],
-                    if (data['status'] == 'selesai')
-                      const Row(
-                        children: [
-                          Icon(Icons.check_circle, color: Colors.green, size: 16),
-                          SizedBox(width: 5),
-                          Text('Barang telah sampai dan sukses terbayar.', style: TextStyle(color: Colors.green, fontSize: 12)),
-                        ],
-                      )
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // ==========================================
-  // WIDGET SISI PENJUAL (PESANAN MASUK TOKO)
-  // ==========================================
-  Widget _buildSellerOrderList(String uid) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _firestore.collection('orders').where('seller_id', isEqualTo: uid).snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-        var docs = snapshot.data!.docs;
-        if (docs.isEmpty) return const Center(child: Text('Belum ada pesanan masuk dari pembeli.'));
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(12),
-          itemCount: docs.length,
-          itemBuilder: (context, index) {
-            var orderId = docs[index].id;
-            var data = docs[index].data() as Map<String, dynamic>;
-            final TextEditingController kurirCont = TextEditingController();
-            final TextEditingController resiCont = TextEditingController();
-
-            return Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('📍 Alamat Kirim: ${data['alamat_kirim']}', style: const TextStyle(fontSize: 12, color: Colors.black84, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 5),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Image.network(data['foto_url'] ?? '', width: 50, height: 50, fit: BoxFit.cover),
-                      title: Text(data['nama_produk'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
-                      subtitle: Text('Harga Barang: Rp ${data['total_harga']} (${data['jumlah_beli']} Pcs)'),
-                    ),
+                      const Text('💬 Menunggu penjual pergi ke gerai kurir untuk kirim barang.', style: TextStyle(fontStyle: FontStyle.italic, fontSize: 11, color: Colors.grey)),
