@@ -37,7 +37,7 @@ jobs:
             echo "Folder android ditemukan, melanjutkan ke proses berikutnya."
           fi
 
-      # PERBAIKAN UTAMA (TENTARA PENYELAMAT 2): Suntik ulang main.dart yang bersih bebas dari dot-shorthands eror
+      # PERBAIKAN SAMAN JAGA 1: Paksa Tulis Ulang main.dart Yang Sehat
       - name: "Sanitize and Force Write Clean main.dart"
         run: |
           mkdir -p lib
@@ -111,32 +111,139 @@ jobs:
           }
           EOF
 
-      - name: "Install Dependencies"
-        run: flutter pub get
+      # PERBAIKAN SAMAN JAGA 2: Paksa Tulis Ulang auth_screen.dart Yang Utuh & Bebas Eror Kurang Kurung
+      - name: "Sanitize and Force Write Clean auth_screen.dart"
+        run: |
+          cat << 'EOF' > lib/auth_screen.dart
+          import 'package:flutter/material.dart';
+          import 'package:firebase_auth/firebase_auth.dart';
+          import 'package:cloud_firestore/cloud_firestore.dart';
 
-      - name: "Generate Launcher Icons"
-        run: flutter pub run flutter_launcher_icons
+          class AuthScreen extends StatefulWidget {
+            const AuthScreen({super.key});
 
-      - name: "Build Release APK"
-        run: flutter build apk --release
+            @override
+            State<AuthScreen> createState() => _AuthScreenState();
+          }
 
-      - name: "Upload APK ke GitHub Releases"
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-        with:
-          files: build/app/outputs/flutter-apk/app-release.apk
-          tag_name: "v1.0.0-build-${{ github.run_number }}"
-          name: "Nusopa Mart APK v1.0.0 (Build #${{ github.run_number }})"
-          body: |
-            ## 🎉 APK Sukses Dibuat Otomatis!
-            
-            Silakan unduh file `app-release.apk` di bawah untuk mencoba aplikasi di HP Android Anda.
-            
-            **Detail Perbaikan:**
-            - Sukses melewati pembersihan syntax eror 'dot-shorthands'.
-            - Folder Android dirakit otomatis di Server Ubuntu GitHub.
-            - Sinkronisasi Logo Ikon Sukses Diinjeksikan ke Manifest.
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          class _AuthScreenState extends State<AuthScreen> {
+            final FirebaseAuth _auth = FirebaseAuth.instance;
+            final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+            final _formKey = GlobalKey<FormState>();
+            final TextEditingController _emailController = TextEditingController();
+            final TextEditingController _passwordController = TextEditingController();
+            final TextEditingController _namaController = TextEditingController();
+            final TextEditingController _namaTokoController = TextEditingController();
+
+            bool isLoginMode = true; 
+            bool isLoading = false;
+            bool _sembunyikanPassword = true; 
+            String _roleDipilih = 'buyer'; 
+
+            @override
+            void dispose() {
+              _emailController.dispose();
+              _passwordController.dispose();
+              _namaController.dispose();
+              _namaTokoController.dispose();
+              super.dispose();
+            }
+
+            void _submitAuth() async {
+              if (!_formKey.currentState!.validate()) return;
+
+              setState(() {
+                isLoading = true;
+              });
+
+              try {
+                if (isLoginMode) {
+                  await _auth.signInWithEmailAndPassword(
+                    email: _emailController.text.trim(),
+                    password: _passwordController.text.trim(),
+                  );
+                } else {
+                  UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+                    email: _emailController.text.trim(),
+                    password: _passwordController.text.trim(),
+                  );
+
+                  Map<String, dynamic> dataUser = {
+                    'uid': userCredential.user!.uid,
+                    'nama': _namaController.text.trim(),
+                    'email': _emailController.text.trim(),
+                    'role': _roleDipilih,
+                    'buat_pada': Timestamp.now(),
+                  };
+
+                  if (_roleDipilih == 'seller') {
+                    dataUser['nama_toko'] = _namaTokoController.text.trim();
+                    dataUser['kuota_tiket'] = 0; 
+                    dataUser['kota_seller'] = 'Belum diatur'; 
+                  }
+
+                  await _firestore.collection('users').doc(userCredential.user!.uid).set(dataUser);
+                }
+              } on FirebaseAuthException catch (e) {
+                String errorMessage = "Terjadi kesalahan sistem. Coba beberapa saat lagi.";
+                if (e.code == 'invalid-credential') {
+                  errorMessage = 'Email atau kata sandi yang Anda masukkan salah.';
+                } else if (e.code == 'email-already-in-use') {
+                  errorMessage = 'Email ini sudah terdaftar. Silakan login.';
+                } else if (e.code == 'weak-password') {
+                  errorMessage = 'Kata sandi terlalu lemah (Minimal gunakan 6 karakter).';
+                }
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(backgroundColor: Colors.red.shade800, content: Text(errorMessage)),
+                  );
+                }
+              } finally {
+                if (mounted) {
+                  setState(() {
+                    isLoading = false;
+                  });
+                }
+              }
+            }
+
+            @override
+            Widget build(BuildContext context) {
+              return Scaffold(
+                body: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.orange.shade800, Colors.orange.shade600],
+                    ),
+                  ),
+                  child: Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircleAvatar(
+                                  radius: 30,
+                                  backgroundColor: Colors.orange.shade50,
+                                  child: Icon(Icons.local_mall, size: 35, color: Colors.orange.shade800),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  isLoginMode ? 'Masuk ke Nusopa' : 'Gabung Mitra Nusopa',
+                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.orange.shade900),
+                                ),
+                                const SizedBox(height: 24),
+                                if (!isLoginMode) ...[
+                                  TextFormField(
+                                    controller: _namaController,
+                                    decoration: InputDecoration(
