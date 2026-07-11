@@ -28,9 +28,6 @@ dependencies:
   firebase_messaging: ^15.0.0          # Menerima sinyal push notification iklan & orderan
   flutter_local_notifications: ^17.2.1 # Menampilkan pop-up notifikasi + pemicu suara khas
 
-  # --- PEMUTAR SUARA JALUR CODING DART (LIB) ---
-  audioplayers: ^5.2.1          # REVISI KUNCI: Diturunkan ke 5.2.1 agar stabil di SDK 34 tanpa bug server
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -51,4 +48,3 @@ flutter:
   # Mendaftarkan folder aset agar terbaca penuh oleh sistem kompilasi Flutter
   assets:
     - assets/icon/
-    - assets/suara/             # Mendaftarkan folder suara kustom Anda
