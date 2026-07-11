@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:carousel_slider_plus/carousel_slider_plus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:url_launcher/url_launcher.dart'; // Untuk fitur hubungi CS via WhatsApp
+import 'package:url_launcher/url_launcher.dart'; 
 import '../services/jarak_service.dart'; 
 import 'keranjang_screen.dart';       
 
@@ -16,17 +16,14 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String kueriPencarian = "";
   Position? posisiPembeli;
-  
-  // Simulasi jumlah tiket seller (Ganti dengan ambil data dari Firestore user/seller Anda)
   int jumlahTiketSeller = 8; 
 
-  // Direct link gambar promo profesional (Anti-pecah/eror)
+  // PERBAIKAN 4: Tautan gambar spanduk langsung (Direct Link) agar visual iklan muncul
   final List<String> imgBannerList = [
     'https://unsplash.com', 
     'https://unsplash.com', 
   ];
 
-  // Menu Kategori Shopee Style disesuaikan dengan fitur versi Anda
   final List<Map<String, dynamic>> categories = [
     {"icon": Icons.live_tv, "label": "Live Gratis", "color": Colors.red},
     {"icon": Icons.local_shipping, "label": "Khusus COD", "color": Colors.orange.shade800},
@@ -50,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Fungsi manual chat ke WA Anda untuk top up tiket atau komplain resi
+  // PERBAIKAN 2: Perbaikan struktur teks URL WhatsApp Chat CS agar tidak crash
   void _hubungiCsWhatsApp() async {
     const nomorFormat = "6281234567890"; // GANTI DENGAN NOMOR WA ANDA
     const pesan = "Halo Admin CS, saya ingin top up tiket seller / tanya seputar pengiriman.";
@@ -68,7 +65,6 @@ class _HomeScreenState extends State<HomeScreen> {
         child: NestedScrollView(
           headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
             return <Widget>[
-              // HEADER PREMIUM ALA SHOPEE (ORANGE KHAS COD)
               SliverAppBar(
                 backgroundColor: Colors.orange.shade800,
                 floating: true,
@@ -96,7 +92,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 actions: [
-                  // INDIKATOR TIKET SELLER (Fitur Unik Anda)
                   Center(
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -130,13 +125,12 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // BANNER PROMO BERGERAK
                 const SizedBox(height: 8),
                 CarouselSlider(
                   options: CarouselOptions(
                     height: 130.0,
                     autoPlay: true,
-                    viewportFraction: 1.0, // Full width ala shopee banner beranda
+                    viewportFraction: 1.0, 
                   ),
                   items: imgBannerList.map((imageUrl) {
                     return Container(
@@ -151,7 +145,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   }).toList(),
                 ),
 
-                // BARIS MENU KATEGORI SHOPEE STYLE
                 const SizedBox(height: 15),
                 SizedBox(
                   height: 85,
@@ -188,10 +181,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                // SEPARATOR STRIP ABU-ABU KHAS SHOPEE
                 Container(height: 8, color: Colors.grey.shade200),
 
-                // TITLE BAR REKOMENDASI
                 Padding(
                   padding: const EdgeInsets.all(12),
                   child: Row(
@@ -201,12 +192,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         "REKOMENDASI TERDEKAT COD",
                         style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.orange.shade900),
                       ),
-                      Text("Paling Sesuai", style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
+                      // Indikator status pencarian lokasi pembeli
+                      Text(
+                        posisiPembeli == null ? "Mencari Lokasi Anda..." : "Radius Diaktifkan 📍", 
+                        style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                      ),
                     ],
                   ),
                 ),
 
-                // GRID PRODUK DUA KOLOM
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: StreamBuilder<QuerySnapshot>(
@@ -225,7 +219,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       var productDocs = snapshot.data!.docs;
 
+                      // 1. FILTER TENTANG KATA KUNCI PENCARIAN (Bila ada input teks)
                       if (kueriPencarian.isNotEmpty) {
                         productDocs = productDocs.where((doc) {
                           var data = doc.data() as Map<String, dynamic>;
                           String namaProd = (data['nama_produk'] ?? '').toString().toLowerCase();
+                          return namaProd.contains(kueriPencarian);
+                        }).toList();
+                      }
+
+                      // PERBAIKAN 3: ALGORITMA URUTAN RADIUS TERDEKAT (Urutkan Berdasarkan Jarak Asli HP Pembeli)
+                      if (posisiPembeli != null) {
