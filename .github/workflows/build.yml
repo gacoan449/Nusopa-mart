@@ -23,18 +23,27 @@ jobs:
       with:
         channel: 'stable'
 
-    # PERBAIKAN URUTAN SAKTI: Jalankan flutter create DULUAN, baru amankan setelan Gradle-nya
-    - name: Auto Generate Android Platform Base
+    # STRATEGI BACKUP INTERN: Mengamankan file main.dart asli Anda sebelum dihancurkan Flutter CLI
+    - name: Auto Generate Android with Safe File Backup
       run: |
+        # 1. Amankan file main.dart asli Anda ke folder temporary di luar proyek
+        mkdir -p /tmp/nusopa_backup
+        if [ -f "lib/main.dart" ]; then
+          cp lib/main.dart /tmp/nusopa_backup/main.dart
+        elif [ -f "main.dart" ]; then
+          cp main.dart /tmp/nusopa_backup/main.dart
+        fi
+        
+        # 2. Buat folder platform android (proses ini akan menimpa main.dart sampel bawaan)
         flutter create . --platforms=android
         
-        # Suntik Kotlin versi stabil ke Gradle utama (.kts)
+        # 3. KEMBALIKAN MUTLAK file main.dart asli Anda dari folder temporary
+        if [ -f "/tmp/nusopa_backup/main.dart" ]; then
+          cp /tmp/nusopa_backup/main.dart lib/main.dart
+        fi
+        
+        # 4. Suntik plugin Kotlin versi stabil ke Gradle utama (.kts)
         sed -i 's/id("org.jetbrains.kotlin.android") version ".*/id("org.jetbrains.kotlin.android") version "1.9.22" apply false/' android/build.gradle.kts
-
-    # LANGKAH PENYELAMATAN: Ambil kembali (Force Checkout) file main.dart asli milik Anda dari GitHub agar tidak hilang tertimpa
-    - name: Restore Original Source Code
-      run: |
-        git checkout HEAD -- lib/main.dart
 
     # SELESAIKAN INTEGRASI GRADLE APP UTAMA 
     - name: Inject Custom Gradle Config
@@ -81,7 +90,7 @@ jobs:
         }
         EOF
 
-        # SAPU JAGAT MASSAL PLUGIN LUAR
+        # SAPU JAGAT MASSAL PLUGIN LUAR KTS
         cat << 'EOF' >> android/build.gradle.kts
         subprojects {
             plugins.withType<com.android.build.gradle.api.AndroidBasePlugin> {
