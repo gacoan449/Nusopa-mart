@@ -23,77 +23,14 @@ jobs:
       with:
         channel: 'stable'
 
-    # REVISI SAKTI PAMUNGKAS TOTAL: Memaksa resolusi SDK ke 36 di semua lini tanpa kecuali
-    - name: Auto Generate Android and Inject Custom Gradle Config
+    # Membuat folder android standar bawaan Flutter terbaru secara aman
+    - name: Auto Generate Android and Fix Sample Main Dart
       run: |
         flutter create . --platforms=android
         
-        # 1. Membuat folder suara kosong di server biar tidak eror assets
-        mkdir -p assets/suara
-        touch assets/suara/.gitkeep
-        
-        # 2. Sembuhin baris sample main.dart bawaan Flutter CLI yang rusak titik eksperimental
+        # Sembuhin baris sample main.dart bawaan Flutter CLI yang rusak titik eksperimental
         sed -i 's/colorScheme: .fromSeed/colorScheme: ColorScheme.fromSeed/g' lib/main.dart
         sed -i 's/mainAxisAlignment: .center/mainAxisAlignment: MainAxisAlignment.center/g' lib/main.dart
-        
-        # 3. Suntik Kotlin versi stabil ke Gradle utama
-        sed -i 's/id("org.jetbrains.kotlin.android") version ".*/id("org.jetbrains.kotlin.android") version "1.9.22" apply false/' android/build.gradle.kts
-        
-        # 4. Kunci SDK Aplikasi Utama ke versi 36
-        cat << 'EOF' > android/app/build.gradle.kts
-        plugins {
-            id("com.android.application")
-            id("kotlin-android")
-            id("dev.flutter.flutter-gradle-plugin")
-        }
-
-        android {
-            namespace = "com.example.nusopa_mart"
-            compileSdk = 36
-
-            compileOptions {
-                sourceCompatibility = JavaVersion.VERSION_17
-                targetCompatibility = JavaVersion.VERSION_17
-                isCoreLibraryDesugaringEnabled = true
-            }
-
-            defaultConfig {
-                applicationId = "com.example.nusopa_mart"
-                minSdk = 21
-                targetSdk = 36
-                versionCode = flutter.versionCode
-                versionName = flutter.versionName
-                multiDexEnabled = true
-            }
-
-            buildTypes {
-                release {
-                    signingConfig = signingConfigs.getByName("debug")
-                }
-            }
-        }
-
-        kotlin {
-            jvmToolchain(17)
-        }
-
-        dependencies {
-            coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
-        }
-        EOF
-
-        # 5. TRIK BOM ATOM GRADLE KTS: Memaksa resolusi strategi kompilasi semua modul luar ke SDK 36 secara paksa dan mutlak
-        cat << 'EOF' >> android/build.gradle.kts
-        subprojects {
-            afterEvaluate {
-                if (project.extensions.findByName("android") != null) {
-                    val android = project.extensions.getByName("android") as com.android.build.gradle.BaseExtension
-                    android.compileSdkVersion(36)
-                    android.defaultConfig.targetSdkVersion(36)
-                }
-            }
-        }
-        EOF
 
     - name: Install dependencies
       run: flutter pub get
