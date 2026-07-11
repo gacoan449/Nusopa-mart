@@ -11,40 +11,40 @@ dependencies:
     sdk: flutter
 
   # --- PUSTAKA INTI FIREBASE ---
-  firebase_core: ^3.0.0          # Inisialisasi awal koneksi Firebase cloud
-  firebase_auth: ^5.0.0          # Sistem keamanan daftar & login user/seller
-  cloud_firestore: ^5.0.0        # Database realtime produk, pesanan, dan tiket
+  firebase_core: ^3.0.0          
+  firebase_auth: ^5.0.0          
+  cloud_firestore: ^5.0.0        
 
   # --- FITUR VISUAL & OPERASIONAL MARKETPLACE ---
-  image_picker: ^1.1.2           # Mengambil foto dagangan dari galeri HP seller
-  firebase_storage: ^12.0.0      # Tempat menyimpan file gambar produk di cloud
-  carousel_slider_plus: ^7.1.2   # Versi ditingkatkan mengikuti saran server
-  url_launcher: ^6.3.0           # Membuka link cekresi luar secara otomatis
+  image_picker: ^1.1.2           
+  firebase_storage: ^12.0.0      
+  carousel_slider_plus: ^7.1.2   
+  url_launcher: ^6.3.0           
 
   # --- FITUR SISTEM LOKASI & RADIAL MAPS ---
-  geolocator: ^13.0.2            # Mengambil titik koordinat GPS untuk filter toko terdekat
+  geolocator: ^13.0.2            
 
-  # --- FITUR SISTEM NOTIFIKASI SUARA KHUSUS ---
-  firebase_messaging: ^15.0.0          # Menerima sinyal push notification iklan & orderan
-  flutter_local_notifications: ^17.2.1 # Menampilkan pop-up notifikasi + pemicu suara khas
+  # --- FITUR SISTEM NOTIFIKASI STANDAR ---
+  firebase_messaging: ^15.0.0          
+  flutter_local_notifications: ^17.2.1 
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
-  flutter_launcher_icons: ^0.13.1     # Robot pembangun ikon logo aplikasi otomatis
+  flutter_launcher_icons: ^0.13.1     
 
-# --- KONFIGURASI CETAK LOGO IKON APLIKASI (SHRINK-TO-FIT) ---
+# --- PERBAIKAN UTAMA: Konfigurasi Cetak Ikon Disinkronkan ke Sistem Android ---
 flutter_launcher_icons:
-  android: "launcher_icon"
-  ios: false                             # Dimatikan menjadi false karena proyek murni Android
-  image_path: "assets/icon/logo.png"            # Jalur berkas gambar logo Anda di GitHub
-  adaptive_icon_background: "#FFFFFF"          # Warna latar belakang dasar cetakan logo
+  android: true                          # DIUBAH MENJADI TRUE agar resmi menimpa logo bawaan (ic_launcher)
+  ios: false                             
+  image_path: "assets/icon/logo.png"            
+  adaptive_icon_background: "#FFFFFF"          
   adaptive_icon_foreground: "assets/icon/logo.png"
 
 flutter:
   uses-material-design: true
   
-  # Mendaftarkan folder aset agar terbaca penuh oleh sistem kompilasi Flutter
+  # Mendaftarkan folder aset gambar agar terbaca penuh saat proses kompilasi APK
   assets:
     - assets/icon/
