@@ -21,12 +21,14 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      # Setup environment Flutter tanpa cache untuk menghindari log sukses palsu
       - name: "Setup Flutter Environment"
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: false 
 
+      # Membuat ulang folder android otomatis jika tidak terdeteksi di repositori
       - name: "Regenerate Android Project Folder"
         run: |
           if [ ! -d "android" ]; then
@@ -36,6 +38,7 @@ jobs:
             echo "Folder android ditemukan, melanjutkan ke proses berikutnya."
           fi
 
+      # Menulis ulang file main.dart secara bersih di lingkungan server
       - name: "Sanitize and Force Write Clean main.dart"
         run: |
           mkdir -p lib
@@ -109,6 +112,7 @@ jobs:
           }
           EOF
 
+      # Menulis ulang file auth_screen.dart secara utuh (Struktur kode sudah diperbaiki & ditutup sempurna)
       - name: "Sanitize and Force Write Clean auth_screen.dart"
         run: |
           cat << 'EOF' > lib/auth_screen.dart
@@ -240,13 +244,6 @@ jobs:
                                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.orange.shade900),
                                 ),
                                 const SizedBox(height: 24),
-                                if (!isLoginMode) ...[
-                                  TextFormField(
-                                    controller: _namaController,
-                                    decoration: InputDecoration(
-                                      labelText: 'Nama Lengkap',
-                                      prefixIcon: const Icon(Icons.person_outline, size: 20),
-                                    ),
-                                  ),
-                                ],
-                              ],
+                                TextFormField(
+                                  controller: _emailController,
+                                  decoration: const InputDecoration(
