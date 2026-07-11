@@ -23,10 +23,10 @@ jobs:
       with:
         channel: 'stable'
 
-    # STRATEGI BACKUP INTERN: Mengamankan file main.dart asli Anda sebelum dihancurkan Flutter CLI
-    - name: Auto Generate Android with Safe File Backup
+    # TAKTIK PARIPURNA: Cadangkan file asli, buat platform Android, kembalikan file asli, LALU BERSIHKAN TANDA TITIK RUSAK!
+    - name: Auto Generate Android with Safe File Backup and Fix
       run: |
-        # 1. Amankan file main.dart asli Anda ke folder temporary di luar proyek
+        # 1. Amankan file main.dart asli Anda ke folder temporary
         mkdir -p /tmp/nusopa_backup
         if [ -f "lib/main.dart" ]; then
           cp lib/main.dart /tmp/nusopa_backup/main.dart
@@ -34,15 +34,19 @@ jobs:
           cp main.dart /tmp/nusopa_backup/main.dart
         fi
         
-        # 2. Buat folder platform android (proses ini akan menimpa main.dart sampel bawaan)
+        # 2. Buat folder platform android
         flutter create . --platforms=android
         
-        # 3. KEMBALIKAN MUTLAK file main.dart asli Anda dari folder temporary
+        # 3. KEMBALIKAN file main.dart asli Anda dari folder temporary
         if [ -f "/tmp/nusopa_backup/main.dart" ]; then
           cp /tmp/nusopa_backup/main.dart lib/main.dart
         fi
         
-        # 4. Suntik plugin Kotlin versi stabil ke Gradle utama (.kts)
+        # 4. SAPU JAGAT: Bersihkan tanda titik dot-shorthands yang masih tersisa di main.dart asli Anda!
+        sed -i 's/colorScheme: .fromSeed/colorScheme: ColorScheme.fromSeed/g' lib/main.dart
+        sed -i 's/mainAxisAlignment: .center/mainAxisAlignment: MainAxisAlignment.center/g' lib/main.dart
+        
+        # 5. Suntik plugin Kotlin versi stabil ke Gradle utama (.kts)
         sed -i 's/id("org.jetbrains.kotlin.android") version ".*/id("org.jetbrains.kotlin.android") version "1.9.22" apply false/' android/build.gradle.kts
 
     # SELESAIKAN INTEGRASI GRADLE APP UTAMA 
