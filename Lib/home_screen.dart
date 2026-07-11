@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:carousel_slider_plus/carousel_slider_plus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
-import '../services/jarak_service.dart'; // Utilitas hitung jarak km bumi bulat
-import 'keranjang_screen.dart';       // Menghubungkan tombol ikon keranjang belanja
+import 'package:url_launcher/url_launcher.dart'; // Untuk fitur hubungi CS via WhatsApp
+import '../services/jarak_service.dart'; 
+import 'keranjang_screen.dart';       
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,20 +16,23 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String kueriPencarian = "";
   Position? posisiPembeli;
+  
+  // Simulasi jumlah tiket seller (Ganti dengan ambil data dari Firestore user/seller Anda)
+  int jumlahTiketSeller = 8; 
 
-  // Gambar Spanduk Promo Admin (Gunakan tautan gambar asli agar tidak pecah/eror)
+  // Direct link gambar promo profesional (Anti-pecah/eror)
   final List<String> imgBannerList = [
-    'https://unsplash.com', // Banner belanja
-    'https://unsplash.com', // Banner promo promo
+    'https://unsplash.com', 
+    'https://unsplash.com', 
   ];
 
-  // Daftar Kategori Shopee Style
+  // Menu Kategori Shopee Style disesuaikan dengan fitur versi Anda
   final List<Map<String, dynamic>> categories = [
-    {"icon": Icons.live_tv, "label": "Shopee Live", "color": Colors.red},
-    {"icon": Icons.local_shipping, "label": "Bisa COD", "color": Colors.green},
-    {"icon": Icons.flash_on, "label": "Flash Sale", "color": Colors.orange},
-    {"icon": Icons.check_room, "label": "Fashion", "color": Colors.purple},
-    {"icon": Icons.phone_android, "label": "Elektronik", "color": Colors.blue},
+    {"icon": Icons.live_tv, "label": "Live Gratis", "color": Colors.red},
+    {"icon": Icons.local_shipping, "label": "Khusus COD", "color": Colors.orange.shade800},
+    {"icon": Icons.confirmation_number, "label": "Beli Tiket", "color": Colors.blue},
+    {"icon": Icons.support_agent, "label": "Hubungi CS", "color": Colors.green},
+    {"icon": Icons.storefront, "label": "Mulai Jual", "color": Colors.purple},
   ];
 
   @override
@@ -37,13 +41,22 @@ class _HomeScreenState extends State<HomeScreen> {
     _tangkapGpsPembeli();
   }
 
-  // Fungsi mengaktifkan GPS pembeli secara otomatis saat membuka aplikasi
   void _tangkapGpsPembeli() async {
     Position? posisi = await JarakService.ambilLokasiSekarang();
     if (posisi != null) {
       setState(() {
         posisiPembeli = posisi;
       });
+    }
+  }
+
+  // Fungsi manual chat ke WA Anda untuk top up tiket atau komplain resi
+  void _hubungiCsWhatsApp() async {
+    const nomorFormat = "6281234567890"; // GANTI DENGAN NOMOR WA ANDA
+    const pesan = "Halo Admin CS, saya ingin top up tiket seller / tanya seputar pengiriman.";
+    final url = Uri.parse("https://wa.me{Uri.encodeComponent(pesan)}");
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
     }
   }
 
@@ -55,35 +68,51 @@ class _HomeScreenState extends State<HomeScreen> {
         child: NestedScrollView(
           headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
             return <Widget>[
-              // 1. HEADER MODEL SHOPEE (PENCARIAN NYATA & NOTIFIKASI)
+              // HEADER PREMIUM ALA SHOPEE (ORANGE KHAS COD)
               SliverAppBar(
-                backgroundColor: Colors.blue.shade700,
+                backgroundColor: Colors.orange.shade800,
                 floating: true,
                 pinned: true,
-                elevation: 0,
+                elevation: 1,
                 title: Container(
-                  height: 40,
+                  height: 38,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                   child: TextField(
                     onChanged: (value) {
                       setState(() {
-                        kueriPencarian = value.toLowerCase(); // Filter text dinamis
+                        kueriPencarian = value.toLowerCase(); 
                       });
                     },
                     decoration: InputDecoration(
-                      contentPadding: const EdgeInsets.only(top: 8),
+                      contentPadding: const EdgeInsets.only(top: 4),
                       border: InputBorder.none,
-                      hintText: "Cari produk, toko, atau area terdekat...",
+                      hintText: "Cari toko atau produk COD terdekat...",
                       hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-                      prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 20),
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 18),
                     ),
                   ),
                 ),
                 actions: [
-                  // TERHUBUNG NYATA: Membuka Halaman Keranjang Belanja COD Anda
+                  // INDIKATOR TIKET SELLER (Fitur Unik Anda)
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade900,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.confirmation_number, color: Colors.yellow, size: 14),
+                          const SizedBox(width: 4),
+                          Text("$jumlahTiketSeller Tkt", style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ),
                   IconButton(
                     icon: const Icon(Icons.shopping_cart_outlined, color: Colors.white),
                     onPressed: () {
@@ -93,10 +122,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       );
                     },
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.notifications_none, color: Colors.white),
-                    onPressed: () {},
-                  ),
                 ],
               ),
             ];
@@ -105,123 +130,102 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 2. BANNER PROMO BERGERAK OTOMATIS (CAROUSEL)
-                const SizedBox(height: 10),
+                // BANNER PROMO BERGERAK
+                const SizedBox(height: 8),
                 CarouselSlider(
                   options: CarouselOptions(
-                    height: 140.0,
+                    height: 130.0,
                     autoPlay: true,
-                    enlargeCenterPage: true,
-                    viewportFraction: 0.92,
-                    aspectRatio: 16 / 9,
+                    viewportFraction: 1.0, // Full width ala shopee banner beranda
                   ),
                   items: imgBannerList.map((imageUrl) {
-                    return Builder(
-                      builder: (BuildContext context) {
-                        return Container(
-                          width: MediaQuery.of(context).size.width,
-                          margin: const EdgeInsets.symmetric(horizontal: 2.0),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            image: DecorationImage(
-                              image: NetworkImage(imageUrl),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        );
-                      },
+                    return Container(
+                      width: MediaQuery.of(context).size.width,
+                      decoration: BoxDecoration(
+                        image: DecorationImage(
+                          image: NetworkImage(imageUrl),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     );
                   }).toList(),
                 ),
 
-                // 3. BARIS MENU KATEGORI (SHOPEE STYLE)
-                const SizedBox(height: 20),
+                // BARIS MENU KATEGORI SHOPEE STYLE
+                const SizedBox(height: 15),
                 SizedBox(
-                  height: 90,
+                  height: 85,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
                     itemCount: categories.length,
                     itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 20),
-                        child: Column(
-                          children: [
-                            CircleAvatar(
-                              radius: 25,
-                              backgroundColor: categories[index]['color'].withAlpha(26),
-                              child: Icon(categories[index]['icon'], color: categories[index]['color'], size: 24),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              categories[index]['label'],
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                            ),
-                          ],
+                      return GestureDetector(
+                        onTap: () {
+                          if (categories[index]['label'] == "Beli Tiket" || categories[index]['label'] == "Hubungi CS") {
+                            _hubungiCsWhatsApp();
+                          }
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: Column(
+                            children: [
+                              CircleAvatar(
+                                radius: 23,
+                                backgroundColor: categories[index]['color'].withAlpha(26),
+                                child: Icon(categories[index]['icon'], color: categories[index]['color'], size: 22),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                categories[index]['label'],
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w400, color: Colors.black80),
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },
                   ),
                 ),
 
-                // TITLE BAR FILTER ALGORITMA REKOMENDASI
+                // SEPARATOR STRIP ABU-ABU KHAS SHOPEE
+                Container(height: 8, color: Colors.grey.shade200),
+
+                // TITLE BAR REKOMENDASI
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+                  padding: const EdgeInsets.all(12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.between,
                     children: [
                       Text(
-                        "Rekomendasi Teratas Bintang 5 ⭐",
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.blue.shade900),
+                        "REKOMENDASI TERDEKAT COD",
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.orange.shade900),
                       ),
-                      const Text("Urutan Rating Terbaik", style: TextStyle(color: Colors.grey, fontSize: 11)),
+                      Text("Paling Sesuai", style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
                     ],
                   ),
                 ),
 
-                // 4. GRID PRODUK DUA KOLOM DARI FIRESTORE + ALGORITMA FILTER BINTANG 5 & JARAK RADIUS GPS
+                // GRID PRODUK DUA KOLOM
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: StreamBuilder<QuerySnapshot>(
-                    // ALGORITMA UTAMA: Urutkan produk dari data awan berdasarkan rating/bintang 5 teratas
                     stream: FirebaseFirestore.instance
                         .collection('products')
                         .orderBy('rating', descending: true)
                         .snapshots(),
                     builder: (context, snapshot) {
+                      if (snapshot.hasError) return Center(child: Text('Eror: ${snapshot.error}'));
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
+                        return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
                       }
                       if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(40.0),
-                            child: Text('Belum ada barang dagangan yang dipajang seller.', style: TextStyle(color: Colors.grey)),
-                          ),
-                        );
+                        return const Center(child: Padding(padding: EdgeInsets.all(40), child: Text('Belum ada produk dari seller.')));
                       }
 
-                      // Membaca list dokumen asli dari Firestore
                       var productDocs = snapshot.data!.docs;
 
-                      // Melakukan penyaringan kata kunci pencarian teks di beranda jika ada input teks
                       if (kueriPencarian.isNotEmpty) {
                         productDocs = productDocs.where((doc) {
-                          String namaProd = (doc['nama_produk'] ?? '').toString().toLowerCase();
-                          return namaProd.contains(kueriPencarian);
-                        }).toList();
-                      }
-
-                      return GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 0.70,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                        ),
-                        itemCount: productDocs.length,
-                        itemBuilder: (context, index) {
-                          var pData = productDocs[index].data() as Map<String, dynamic>;
-                          
+                          var data = doc.data() as Map<String, dynamic>;
+                          String namaProd = (data['nama_produk'] ?? '').toString().toLowerCase();
