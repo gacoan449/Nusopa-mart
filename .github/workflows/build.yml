@@ -23,7 +23,7 @@ jobs:
       with:
         channel: 'stable'
 
-    # FORCE UPGRADE MASAL: Memaksa aplikasi utama dan seluruh plugin luar (audioplayers) wajib menggunakan SDK 34
+    # REVISI FINAL GRADLE KTS: Menggunakan metode konfigurasi langsung tanpa afterEvaluate yang memicu eror
     - name: Auto Generate Android and Inject Custom Gradle Config
       run: |
         flutter create . --platforms=android
@@ -82,14 +82,14 @@ jobs:
         }
         EOF
 
-        # 5. TRIK SAKTI PAMUNGKAS: Menyisir dan mendongkrak paksa audioplayers dll ke compileSdk 34 secara instan
+        # 5. REVISI SAKTI: Memaksa semua sub-project/plugin menggunakan SDK 34 dengan gaya penulisan Kotlin DSL (.kts) yang benar
         cat << 'EOF' >> android/build.gradle.kts
         subprojects {
-            afterEvaluate {
-                if (project.hasProperty("android")) {
-                    val android = project.extensions.getByName("android") as com.android.build.gradle.BaseExtension
-                    if (android.compileSdkVersion == "android-33" || android.compileSdkVersion == "33") {
-                        android.compileSdkVersion(34)
+            plugins.withType<com.android.build.gradle.api.AndroidBasePlugin> {
+                configure<com.android.build.gradle.BaseExtension> {
+                    compileSdkVersion(34)
+                    defaultConfig {
+                        targetSdkVersion(34)
                     }
                 }
             }
