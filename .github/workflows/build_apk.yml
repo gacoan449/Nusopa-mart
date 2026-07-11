@@ -21,11 +21,12 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      # PERBAIKAN 1: Mematikan Cache bawaan (cache: false) agar server tidak membaca log sukses palsu
       - name: "Setup Flutter Environment"
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          cache: true 
+          cache: false 
 
       - name: "Regenerate Android Project Folder"
         run: |
@@ -246,5 +247,3 @@ jobs:
                                     decoration: InputDecoration(
                                       labelText: 'Nama Lengkap',
                                       prefixIcon: const Icon(Icons.person_outline, size: 20),
-                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                                    ),
