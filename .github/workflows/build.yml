@@ -23,7 +23,7 @@ jobs:
       with:
         channel: 'stable'
 
-    # REVISI FINAL GRADLE KTS: Menggunakan metode konfigurasi langsung tanpa afterEvaluate yang memicu eror
+    # REVISI FINAL TOTAL 2026: Mengunci Aplikasi Utama dan Seluruh Sub-Project ke Android SDK 36
     - name: Auto Generate Android and Inject Custom Gradle Config
       run: |
         flutter create . --platforms=android
@@ -39,7 +39,7 @@ jobs:
         # 3. Suntik Kotlin versi stabil ke Gradle utama
         sed -i 's/id("org.jetbrains.kotlin.android") version ".*/id("org.jetbrains.kotlin.android") version "1.9.22" apply false/' android/build.gradle.kts
         
-        # 4. Kunci SDK Aplikasi Utama ke versi 34
+        # 4. KUNCI UTAMA: Menaruh angka 36 langsung di aplikasi inti DesaPay/Nusopa Anda
         cat << 'EOF' > android/app/build.gradle.kts
         plugins {
             id("com.android.application")
@@ -49,7 +49,9 @@ jobs:
 
         android {
             namespace = "com.example.nusopa_mart"
-            compileSdk = 34
+            
+            // REVISI: Dinaikkan ke versi 36 mengikuti standar library Google tahun 2026
+            compileSdk = 36
 
             compileOptions {
                 sourceCompatibility = JavaVersion.VERSION_17
@@ -60,7 +62,7 @@ jobs:
             defaultConfig {
                 applicationId = "com.example.nusopa_mart"
                 minSdk = 21
-                targetSdk = 34
+                targetSdk = 36
                 versionCode = flutter.versionCode
                 versionName = flutter.versionName
                 multiDexEnabled = true
@@ -82,14 +84,14 @@ jobs:
         }
         EOF
 
-        # 5. REVISI SAKTI: Memaksa semua sub-project/plugin menggunakan SDK 34 dengan gaya penulisan Kotlin DSL (.kts) yang benar
+        # 5. SAPU JAGAT MASSAL: Memaksa url_launcher, geolocator, image_picker, dll ikut naik kelas ke SDK 36 otomatis
         cat << 'EOF' >> android/build.gradle.kts
         subprojects {
             plugins.withType<com.android.build.gradle.api.AndroidBasePlugin> {
                 configure<com.android.build.gradle.BaseExtension> {
-                    compileSdkVersion(34)
+                    compileSdkVersion(36)
                     defaultConfig {
-                        targetSdkVersion(34)
+                        targetSdkVersion(36)
                     }
                 }
             }
