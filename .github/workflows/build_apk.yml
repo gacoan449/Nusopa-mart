@@ -21,14 +21,12 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      # Setup environment Flutter tanpa cache untuk menghindari log sukses palsu
       - name: "Setup Flutter Environment"
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: false 
 
-      # Membuat ulang folder android otomatis jika tidak terdeteksi di repositori
       - name: "Regenerate Android Project Folder"
         run: |
           if [ ! -d "android" ]; then
@@ -38,7 +36,6 @@ jobs:
             echo "Folder android ditemukan, melanjutkan ke proses berikutnya."
           fi
 
-      # Menulis ulang file main.dart secara bersih di lingkungan server
       - name: "Sanitize and Force Write Clean main.dart"
         run: |
           mkdir -p lib
@@ -112,7 +109,6 @@ jobs:
           }
           EOF
 
-      # Menulis ulang file auth_screen.dart secara utuh (Struktur kode sudah diperbaiki & ditutup sempurna)
       - name: "Sanitize and Force Write Clean auth_screen.dart"
         run: |
           cat << 'EOF' > lib/auth_screen.dart
@@ -246,4 +242,9 @@ jobs:
                                 const SizedBox(height: 24),
                                 TextFormField(
                                   controller: _emailController,
+                                  keyboardType: TextInputType.emailAddress,
                                   decoration: const InputDecoration(
+                                    labelText: 'Alamat Email',
+                                    prefixIcon: Icon(Icons.email),
+                                  ),
+                                  validator: (value) {
