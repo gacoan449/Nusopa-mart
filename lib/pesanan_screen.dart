@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:math';
 
 class PesananScreen extends StatefulWidget {
   const PesananScreen({super.key});
@@ -66,7 +67,7 @@ class _PesananScreenState extends State<PesananScreen> with SingleTickerProvider
     }
   }
 
-  // PERBAIKAN 1: Menghapus duplikasi pemotongan tiket (Cukup ubah status saja agar aman)
+  // Menghapus duplikasi pemotongan tiket
   void _konfirmasiPesananDiterima({required String orderId}) async {
     try {
       await _firestore.collection('orders').doc(orderId).update({
@@ -85,7 +86,7 @@ class _PesananScreenState extends State<PesananScreen> with SingleTickerProvider
     }
   }
 
-  // PERBAIKAN 2: Dialog interaktif khusus untuk input resi (Solusi Memory Leak)
+  // Dialog interaktif khusus untuk input resi
   void _bukaDialogInputResi(BuildContext context, String orderId) {
     final TextEditingController kurirCont = TextEditingController();
     final TextEditingController resiCont = TextEditingController();
@@ -100,7 +101,7 @@ class _PesananScreenState extends State<PesananScreen> with SingleTickerProvider
           children: [
             TextField(
               controller: kurirCont,
-              decoration: const InputDecoration(labelText: 'Nama Kurir / Gerai (Misal: J&T, JNE, Titip Tetangga)', labelStyle: TextStyle(fontSize: 12)),
+              decoration: const InputDecoration(labelText: 'Nama Kurir / Gerai (Misal: J&T, JNE)', labelStyle: TextStyle(fontSize: 12)),
             ),
             const SizedBox(height: 8),
             TextField(
@@ -142,7 +143,7 @@ class _PesananScreenState extends State<PesananScreen> with SingleTickerProvider
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('Status Transaksi COD', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        backgroundColor: Colors.orange.shade800, // PERBAIKAN 3: Tema Oranye Selaras
+        backgroundColor: Colors.orange.shade800,
         foregroundColor: Colors.white,
         elevation: 1,
         bottom: TabBar(
@@ -204,7 +205,7 @@ class _PesananScreenState extends State<PesananScreen> with SingleTickerProvider
                           decoration: BoxDecoration(color: data['status'] == 'selesai' ? Colors.green.shade50 : Colors.orange.shade50, borderRadius: BorderRadius.circular(4)),
                           child: Text(
                             data['status'].toString().toUpperCase(),
-                            style: TextStyle(color: data['status'] == 'selesai' ? Colors.green : Colors.orange.shade900, College: true, fontWeight: FontWeight.bold, fontSize: 10),
+                            style: TextStyle(color: data['status'] == 'selesai' ? Colors.green : Colors.orange.shade900, fontWeight: FontWeight.bold, fontSize: 10),
                           ),
                         ),
                       ],
@@ -235,3 +236,4 @@ class _PesananScreenState extends State<PesananScreen> with SingleTickerProvider
                     const Divider(height: 16),
                     if (data['status'] == 'perlu_dikirim')
                       const Text('💬 Menunggu penjual pergi ke gerai kurir untuk kirim barang.', style: TextStyle(fontStyle: FontStyle.italic, fontSize: 11, color: Colors.grey)),
+                    if (data['status'] == 'dikirim') ...[
