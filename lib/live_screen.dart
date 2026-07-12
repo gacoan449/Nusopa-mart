@@ -21,7 +21,7 @@ class _LiveScreenState extends State<LiveScreen> {
     _cekPeranUserSekaliSaja();
   }
 
-  // PERBAIKAN UTAMA: Ambil data role hanya sekali saat layar dibuka (Menghemat Kuota Firebase)
+  // Ambil data role hanya sekali saat layar dibuka (Menghemat Kuota Firebase)
   void _cekPeranUserSekaliSaja() async {
     if (_userAktif != null) {
       try {
@@ -61,9 +61,6 @@ class _LiveScreenState extends State<LiveScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Siaran Langsung Berhasil Diaktifkan!')),
       );
-      
-      // DISINI TEMPAT PINDAH HALAMAN KAMERA NYATA (Agora/Zego)
-      // Navigator.push(context, MaterialPageRoute(builder: (context) => RoomKameraLive(uid: uid)));
     }
   }
 
@@ -83,7 +80,7 @@ class _LiveScreenState extends State<LiveScreen> {
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         title: const Text('Nusopa LIVE 🎥'),
-        backgroundColor: Colors.orange.shade800, // Disamakan warna oranye premium Shopee COD
+        backgroundColor: Colors.orange.shade800,
         foregroundColor: Colors.white,
         elevation: 1,
       ),
@@ -108,7 +105,7 @@ class _LiveScreenState extends State<LiveScreen> {
             ),
           ),
 
-          // DAFTAR TOKO YANG SEDNG LIVE (REALTIME DARI FIRESTORE)
+          // DAFTAR TOKO YANG SEDANG LIVE (REALTIME DARI FIRESTORE)
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -150,17 +147,16 @@ class _LiveScreenState extends State<LiveScreen> {
                     
                     return GestureDetector(
                       onTap: () {
-                        // DISINI TEMPAT PEMBELI MASUK UNTUK NONTON LIVE
+                        // MASUK UNTUK NONTON LIVE
                       },
                       child: Container(
                         decoration: BoxDecoration(
                           color: Colors.black87,
                           borderRadius: BorderRadius.circular(8),
                           image: const DecorationImage(
-                            // PERBAIKAN 1: Direct link gambar asli penonton live agar tidak pecah/eror
                             image: NetworkImage('https://unsplash.com'),
                             fit: BoxFit.cover,
-                            opacity: 0.5, // Digelapkan sedikit agar teks nama toko terbaca jelas
+                            opacity: 0.5,
                           ),
                         ),
                         child: Padding(
@@ -169,7 +165,6 @@ class _LiveScreenState extends State<LiveScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.between,
                             children: [
-                              // Badge LIVE Merah Bergaya Shopee Asli
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
@@ -185,7 +180,6 @@ class _LiveScreenState extends State<LiveScreen> {
                                   ],
                                 ),
                               ),
-                              // Nama Toko Seller di bagian bawah dengan shadow pengaman baca
                               Text(
                                 data['nama_toko'] ?? 'Toko Mitra',
                                 style: const TextStyle(
@@ -236,4 +230,19 @@ class _LiveScreenState extends State<LiveScreen> {
                           backgroundColor: Colors.red.shade700, 
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4))
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                        ),
+                        onPressed: () => _mulaiLiveStreaming(context, _userAktif!.uid, _namaTokoSeller),
+                        icon: const Icon(Icons.videocam, color: Colors.white),
+                        label: const Text('MULAI LIVE', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
