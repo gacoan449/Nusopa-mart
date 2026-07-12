@@ -82,7 +82,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
           return SingleChildScrollView(
             child: Column(
               children: [
-                // PERBAIKAN 2: HEADER PROFIL GRADASI ORANYE NUSOPA PREMIUM
+                // HEADER PROFIL GRADASI ORANYE NUSOPA PREMIUM
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.fromLTRB(16, 50, 16, 25),
@@ -178,7 +178,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
                   ),
                 ),
 
-                // PERBAIKAN 3: INTERGRASI LAYOUT PILIHAN SELLER (DOMPET TIKET JUALAN)
+                // PILIHAN SELLER (DOMPET TIKET JUALAN)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   child: isSeller
@@ -214,3 +214,5 @@ class _ProfilScreenState extends State<ProfilScreen> {
                                     ),
                                   ],
                                 ),
+                              ],
+                            ),
