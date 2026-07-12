@@ -1,10 +1,7 @@
 name: "Otomatis Build APK Nusopa Mart"
 
-on:
-  push:
-    branches:
-      - main
-      - master
+# Memicu workflow untuk setiap push ke branch manapun demi memancing GitHub merespons
+on: [push, pull_request]
 
 jobs:
   build:
