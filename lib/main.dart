@@ -1,15 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_core/firebase_core.dart'; // Import Firebase
 import 'screens/login_screen.dart';
 
-void main() async {
-  // Wajib dipanggil sebelum menyalakan Firebase
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  // Mengaktifkan koneksi Firebase Cloud internet secara nyata
-  await Firebase.initializeApp();
-  
+void main() {
   runApp(const NusopaMartApp());
 }
 
@@ -26,10 +19,8 @@ class NusopaMartApp extends StatelessWidget {
         primaryColor: const Color(0xFFFF5722),
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFFFF5722),
-          primary: const Color(0xFFFF5722),
         ),
-        textTheme: GoogleFonts.interTextTheme(Theme.of(context).textTheme),
-        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
+        textTheme: GoogleFonts.interTextTheme(),
       ),
       home: const LoginScreen(),
     );
