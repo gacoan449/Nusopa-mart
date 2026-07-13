@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'screens/home_screen.dart';
+import 'screens/login_screen.dart'; // Mengimpor halaman login nyata
 
 void main() {
   runApp(const NusopaMartApp());
@@ -21,11 +21,12 @@ class NusopaMartApp extends StatelessWidget {
           seedColor: const Color(0xFFFF5722),
           primary: const Color(0xFFFF5722),
         ),
-        // Mengubah seluruh font aplikasi menjadi Inter agar elegan dan tidak kaku
+        // Mengubah seluruh font aplikasi menjadi Inter agar elegan, mewah, dan tidak kaku
         textTheme: GoogleFonts.interTextTheme(Theme.of(context).textTheme),
-        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
+        scaffoldBackgroundColor: const Color(0xFFF8F9FA), // Latar belakang abu-abu sangat muda premium
       ),
-      home: const HomeScreen(),
+      // PINTU UTAMA SEKARANG DIALIKKAN KE HALAMAN LOGIN DATA NYATA
+      home: const LoginScreen(),
     );
   }
 }
