@@ -17,9 +17,9 @@ dependencies:
   image_picker: ^1.1.2        # Untuk seller mengambil foto resi fisik lewat kamera
 
   # INTI FIREBASE UNTUK DATA NYATA (SIAP RILIS INTERNET)
-  firebase_core: ^3.0.0       # Pustaka utama Firebase
-  firebase_auth: ^5.0.0       # Mengatur login akun nyata tanpa backend sendiri
-  cloud_firestore: ^5.0.0     # Database cloud gratis untuk simpan chat, tiket, & logistik
+  firebase_core: ^3.1.0       # Diperbarui sedikit ke versi minor stabil
+  firebase_auth: ^5.1.0       
+  cloud_firestore: ^5.1.0     
 
 dev_dependencies:
   flutter_test:
@@ -28,5 +28,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # Pastikan folder 'assets/icon/' sudah Anda buat di komputer sebelum melakukan pub get
   assets:
-    - assets/icon/
+    - assets/icon/logo.png
