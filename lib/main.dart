@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'screens/login_screen.dart'; // Mengimpor halaman login nyata
+import 'package:firebase_core/firebase_core.dart'; // Import Firebase
+import 'screens/login_screen.dart';
 
-void main() {
+void main() async {
+  // Wajib dipanggil sebelum menyalakan Firebase
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Mengaktifkan koneksi Firebase Cloud internet secara nyata
+  await Firebase.initializeApp();
+  
   runApp(const NusopaMartApp());
 }
 
@@ -16,16 +23,14 @@ class NusopaMartApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        primaryColor: const Color(0xFFFF5722), // Warna dasar Oranye Premium Nusopa
+        primaryColor: const Color(0xFFFF5722),
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFFFF5722),
           primary: const Color(0xFFFF5722),
         ),
-        // Mengubah seluruh font aplikasi menjadi Inter agar elegan, mewah, dan tidak kaku
         textTheme: GoogleFonts.interTextTheme(Theme.of(context).textTheme),
-        scaffoldBackgroundColor: const Color(0xFFF8F9FA), // Latar belakang abu-abu sangat muda premium
+        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
       ),
-      // PINTU UTAMA SEKARANG DIALIKKAN KE HALAMAN LOGIN DATA NYATA
       home: const LoginScreen(),
     );
   }
