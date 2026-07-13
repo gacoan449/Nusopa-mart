@@ -10,6 +10,10 @@ jobs:
   build-android:
     name: Merakit APK Nusopa Mart di Cloud
     runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: lib
 
     steps:
       - name: Ambil Source Code dari Repo
@@ -26,7 +30,14 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Membersihkan Cache Flutter
+      - name: Mengunduh Dependency Library
+        run: flutter pub get
+
+      # 🎯 KUNCI UTAMA: Membuat folder Android & build.gradle otomatis di Cloud!
+      - name: Generate Folder Android Otomatis
+        run: flutter create . --platforms=android
+
+      - name: Membersihkan Cache & Sinkronisasi Gradle
         run: |
           flutter clean
           flutter pub get
@@ -34,9 +45,8 @@ jobs:
       - name: Proses Perakitan APK Rilis Final
         run: flutter build apk --release
 
-      # SEKARANG SUDAH BERSIH DARI BARIS GANDA (DOUBLE USES)
       - name: Unggah Hasil APK ke Dashboard GitHub
         uses: actions/upload-artifact@v4
         with:
           name: Nusopa-Mart-Release-APK
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: lib/build/app/outputs/flutter-apk/app-release.apk
