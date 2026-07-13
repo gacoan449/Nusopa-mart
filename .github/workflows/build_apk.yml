@@ -1,39 +1,48 @@
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_core/firebase_core.dart'; // Mengaktifkan Firebase Cloud internet
-import 'screens/login_screen.dart'; // Memanggil halaman login nyata
+name: Nusopa.Mart Auto Build APK
 
-void main() async {
-  // Wajib dipanggil sebelum menyalakan Firebase di Flutter
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  // Mengaktifkan koneksi database Firebase Cloud secara nyata
-  await Firebase.initializeApp();
-  
-  runApp(const NusopaMartApp());
-}
+on:
+  push:
+    branches:
+      - main
+      - master
 
-class NusopaMartApp extends StatelessWidget {
-  const NusopaMartApp({super.key});
+jobs:
+  build-android:
+    name: Merakit APK Nusopa Mart di Cloud
+    runs-on: ubuntu-latest
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Nusopa.Mart',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        primaryColor: const Color(0xFFFF5722), // Warna Oranye Premium Nusopa
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFFF5722),
-          primary: const Color(0xFFFF5722),
-        ),
-        // Mengubah seluruh font aplikasi menjadi Inter agar mewah dan tidak kaku
-        textTheme: GoogleFonts.interTextTheme(Theme.of(context).textTheme),
-        scaffoldBackgroundColor: const Color(0xFFF8F9FA), // Latar abu-abu sangat muda premium
-      ),
-      // PINTU UTAMA MEWAH: Langsung masuk ke halaman Login Data Nyata Firebase
-      home: const LoginScreen(),
-    );
-  }
-}
+    steps:
+      - name: Ambil Source Code dari Repo
+        uses: actions/checkout@v4
+
+      - name: Konfigurasi Java JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Konfigurasi Mesin SDK Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Mengunduh Dependency Library
+        run: flutter pub get
+
+      # Membuat folder Android & build.gradle otomatis di Root Utama Cloud
+      - name: Generate Folder Android Otomatis
+        run: flutter create . --platforms=android
+
+      - name: Membersihkan Cache & Sinkronisasi
+        run: |
+          flutter clean
+          flutter pub get
+
+      - name: Proses Perakitan APK Rilis Final
+        run: flutter build apk --release
+
+      - name: Unggah Hasil APK ke Dashboard GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nusopa-Mart-Release-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
