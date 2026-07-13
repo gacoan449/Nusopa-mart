@@ -21,19 +21,23 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # PERBAIKAN DI SINI: Menggunakan repositori pembuat yang benar
       - name: Konfigurasi Mesin SDK Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
 
-      - name: Mengunduh Dependency Library
-        run: flutter pub get
+      # PERBAIKAN 1: Memastikan file Gradle tidak terkunci dan bersih
+      - name: Membersihkan Cache Flutter
+        run: |
+          flutter clean
+          flutter pub get
 
+      # PERBAIKAN 2: Menjalankan proses build dengan deteksi file penuh
       - name: Proses Perakitan APK Rilis Final
         run: flutter build apk --release
 
       - name: Unggah Hasil APK ke Dashboard GitHub
+        uses: actions/upload-activation@v4
         uses: actions/upload-artifact@v4
         with:
           name: Nusopa-Mart-Release-APK
