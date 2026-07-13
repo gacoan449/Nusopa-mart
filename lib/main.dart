@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-// 1. Impor berkas HomeScreen Anda di sini (sesuaikan jalurnya jika berbeda)
 import 'screens/home_screen.dart'; 
 
 void main() {
@@ -23,8 +22,8 @@ class NusopaMartApp extends StatelessWidget {
         ),
         textTheme: GoogleFonts.interTextTheme(),
       ),
-      // 2. Ubah LoginScreen() menjadi HomeScreen() untuk sementara waktu [1]
-      home: const HomeScreen(), 
+      // Kata const di depan HomeScreen sudah dihapus agar tidak error saat build rilis
+      home: HomeScreen(), 
     );
   }
 }
