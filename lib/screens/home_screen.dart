@@ -1,7 +1,11 @@
+// 1. WAJIB TAMBAHKAN DUA BARIS IMPORT INI DI BARIS PALING ATAS FILE!
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 Widget _buildHomeContent() {
   return CustomScrollView(
     slivers: [
-      // 1. Banner Promo (SliverToBoxAdapter untuk widget non-list)
+      // 1. Banner Promo
       SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -54,7 +58,7 @@ Widget _buildHomeContent() {
         ),
       ),
       
-      // 3. GridView Produk yang Efisien (Menggunakan SliverGrid)
+      // 3. GridView Produk Menggunakan SliverGrid
       SliverPadding(
         padding: const EdgeInsets.all(16),
         sliver: SliverGrid(
@@ -64,12 +68,10 @@ Widget _buildHomeContent() {
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
           ),
-          // Ubah itemCount menjadi berapa saja (misal 50), performa tetap ringan!
           delegate: SliverChildBuilderDelegate(
             (context, index) {
               return GestureDetector(
                 onTap: () {
-                  // Aksi ketika produk diklik (Pindah ke Detail Produk)
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Membuka Produk Sembako $index')),
                   );
@@ -87,7 +89,7 @@ Widget _buildHomeContent() {
                     ],
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start, // <-- SUDAH DIPERBAIKI (Sebelumnya typo crossAxisAlignmentCrossAxisAlignment)
                     children: [
                       Expanded(
                         child: Container(
@@ -134,7 +136,7 @@ Widget _buildHomeContent() {
                 ),
               );
             },
-            childCount: 4, // Tentukan jumlah produk di sini
+            childCount: 4, 
           ),
         ),
       ),
