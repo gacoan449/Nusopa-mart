@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/order_model.dart';
+import '../widgets/custom_button.dart'; // Mengimpor tombol mewah dari Bagian 1
 import 'tracking_screen.dart';
+import 'seller_dashboard.dart'; // Mengimpor halaman seller
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,7 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA), // Latar belakang abu-abu super muda premium
+      backgroundColor: const Color(0xFFF8F9FA), 
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0.5,
@@ -24,7 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
           height: 42,
           decoration: BoxDecoration(
             color: const Color(0xFFF1F3F5),
-            borderRadius: BorderRadius.circular(12), // Melengkung mewah, tidak kaku
+            borderRadius: BorderRadius.circular(12), 
           ),
           child: TextField(
             decoration: InputDecoration(
@@ -37,6 +39,17 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         actions: [
+          // TOMBOL RAHASIA UNTUK TESTING PINDAH KE DASBOR SELLER
+          IconButton(
+            icon: const Icon(Icons.storefront, color: Color(0xFFFF5722)),
+            tooltip: 'Masuk Mode Seller (Testing)',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SellerDashboard()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.chat_bubble_outline, color: Colors.black87),
             onPressed: () {
@@ -45,7 +58,6 @@ class _HomeScreenState extends State<HomeScreen> {
           )
         ],
       ),
-      // PERUBAHAN DI SINI: Navigasi halaman yang sudah terurut dan siap pakai
       body: _currentIndex == 0 
           ? _buildHomeContent() 
           : _currentIndex == 1 
@@ -76,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
-          selectedItemColor: const Color(0xFFFF5722), // Oranye khas Shopee premium
+          selectedItemColor: const Color(0xFFFF5722), 
           unselectedItemColor: Colors.grey,
           showSelectedLabels: true,
           showUnselectedLabels: true,
@@ -96,7 +108,6 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Banner Promo Melengkung
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Container(
@@ -118,7 +129,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           
-          // Judul Kategori
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
@@ -127,7 +137,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           
-          // Grid Produk Contoh
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -191,10 +200,26 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       color: Colors.black,
       child: Center(
-        child: Text(
-          'Halaman Short Video Berputar Fullscreen\n(Sederhana Mirip TikTok / Shopee Video)',
-          textAlign: TextAlign.center,
-          style: GoogleFonts.inter(color: Colors.white),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Halaman Short Video Konten Seller',
+                style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              // Contoh implementasi tombol mewah dari Bagian 1 di dalam konten
+              CustomButton(
+                text: 'Beli Produk Video Ini',
+                icon: Icons.shopping_bag_outlined,
+                onPressed: () {
+                  // Aksi beli
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
