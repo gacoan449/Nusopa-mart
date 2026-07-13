@@ -1,5 +1,7 @@
-import 'package:flutter/material:';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../models/order_model.dart';
+import 'tracking_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -43,7 +45,24 @@ class _HomeScreenState extends State<HomeScreen> {
           )
         ],
       ),
-      body: _currentIndex == 0 ? _buildHomeContent() : _buildVideoContent(),
+      // PERUBAHAN DI SINI: Navigasi halaman yang sudah terurut dan siap pakai
+      body: _currentIndex == 0 
+          ? _buildHomeContent() 
+          : _currentIndex == 1 
+              ? _buildVideoContent() 
+              : TrackingScreen(
+                  order: OrderModel(
+                    orderId: "TRX-99201",
+                    productName: "Beras Premium Nusopa 5kg",
+                    productImage: "",
+                    price: 65000,
+                    status: "SEDANG DIKIRIM",
+                    namaEkspedisi: "J&T Express",
+                    nomorResi: "JT1234567890",
+                    fotoResiUrl: "https://unsplash.com", 
+                    linkCekLogistik: "https://jet.co.id", 
+                  ),
+                ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
@@ -65,7 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Beranda'),
             BottomNavigationBarItem(icon: Icon(Icons.slideshow_outlined), activeIcon: Icon(Icons.slideshow), label: 'Video'),
-            BottomNavigationBarItem(icon: Icon(Icons.local_shipping_outlined), label: 'Pesanan'),
+            BottomNavigationBarItem(icon: Icon(Icons.local_shipping_outlined), activeIcon: Icon(Icons.local_shipping), label: 'Pesanan'),
           ],
         ),
       ),
