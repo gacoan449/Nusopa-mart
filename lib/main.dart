@@ -1,18 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_core/firebase_core.dart'; // <-- 1. Wajib impor ini
-import 'firebase_options.dart'; // <-- 2. Otomatis ada setelah menjalankan 'flutterfire configure'
-import 'screens/login_screen.dart';
+// 1. Impor berkas HomeScreen Anda di sini (sesuaikan jalurnya jika berbeda)
+import 'screens/home_screen.dart'; 
 
-void main() async {
-  // <-- 3. Ubah jadi async
-  WidgetsFlutterBinding.ensureInitialized(); // <-- 4. Wajib untuk inisialisasi native plugin
-  
-  // 5. Inisialisasi Firebase sebelum runApp berjalan
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
+void main() {
   runApp(const NusopaMartApp());
 }
 
@@ -29,13 +20,11 @@ class NusopaMartApp extends StatelessWidget {
         primaryColor: const Color(0xFFFF5722),
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFFFF5722),
-          primary: const Color(0xFFFF5722), // Mengunci warna utama agar konsisten
         ),
-        textTheme: GoogleFonts.interTextTheme(
-          Theme.of(context).textTheme, // Penerapan font global yang lebih aman
-        ),
+        textTheme: GoogleFonts.interTextTheme(),
       ),
-      home: const LoginScreen(),
+      // 2. Ubah LoginScreen() menjadi HomeScreen() untuk sementara waktu [1]
+      home: const HomeScreen(), 
     );
   }
 }
