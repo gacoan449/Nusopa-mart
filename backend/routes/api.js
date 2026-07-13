@@ -1,10 +1,26 @@
 const express = require('express');
 const router = express.Router();
 
-// Memanggil controller yang sudah dibuat sebelumnya
+// Memanggil semua controller yang sudah dibuat sebelumnya
+const authController = require('../controllers/authController');
 const adminController = require('../controllers/admin/adminController');
 const shippingController = require('../controllers/seller/shippingController');
 const chatController = require('../controllers/admin/chatController');
+
+/**
+ * ==========================================
+ * 0. RUTING AUTENTIKASI (LOGIN & REGISTER)
+ * ==========================================
+ */
+
+// Endpoint untuk mendaftarkan akun baru pembeli / seller
+// Method: POST -> http://localhost:5000/api/auth/register
+router.post('/auth/register', authController.register);
+
+// Endpoint untuk login akun nyata yang divalidasi ke database
+// Method: POST -> http://localhost:5000/api/auth/login
+router.post('/auth/login', authController.login);
+
 
 /**
  * ==========================================
