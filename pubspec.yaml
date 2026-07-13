@@ -11,10 +11,11 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.6
   
-  # LIBRARY TAMBAHAN UNTUK TAMPILAN MEWAH & FITUR LOGISTIK
+  # LIBRARY UNTUK TAMPILAN MEWAH & LOGISTIK DATA NYATA
   google_fonts: ^6.2.0        # Font modern (Inter / Roboto) agar tidak kaku
   url_launcher: ^6.3.0        # Untuk membuka link cek resi logistik di Google Chrome
   image_picker: ^1.1.2        # Untuk seller mengambil foto resi fisik lewat kamera/galeri
+  http: ^1.2.2                # Koneksi data nyata dari Flutter ke Backend API
 
 dev_dependencies:
   flutter_test:
