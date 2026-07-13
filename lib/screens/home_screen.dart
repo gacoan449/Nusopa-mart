@@ -1,274 +1,265 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/order_model.dart';
-import '../widgets/custom_button.dart'; 
-import 'tracking_screen.dart';
-import 'seller_dashboard.dart'; 
-import 'chat_admin_screen.dart'; 
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class TrackingScreen extends StatelessWidget {
+  final OrderModel order;
 
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0;
+  const TrackingScreen({super.key, required this.order});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA), 
+      // Menggunakan background abu-abu khas e-commerce untuk kontras kartu putih
+      backgroundColor: const Color(0xFFF6F6F6),
       appBar: AppBar(
+        title: Text(
+          'Detail Pengiriman',
+          style: GoogleFonts.inter(
+            color: Colors.black87,
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
+        ),
         backgroundColor: Colors.white,
         elevation: 0.5,
-        title: Container(
-          height: 42,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF1F3F5),
-            borderRadius: BorderRadius.circular(12), 
-          ),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: 'Cari produk di Nusopa.Mart...',
-              hintStyle: GoogleFonts.inter(color: Colors.grey, fontSize: 14),
-              prefixIcon: const Icon(Icons.search, color: Colors.orange),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(vertical: 10),
-            ),
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.storefront, color: Color(0xFFFF5722)),
-            tooltip: 'Masuk Mode Seller (Testing)',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SellerDashboard()),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.chat_bubble_outline, color: Colors.black87),
-            tooltip: 'Chat Admin QRIS',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ChatAdminScreen()),
-              );
-            },
-          )
-        ],
-      ),
-      body: _currentIndex == 0 
-          ? _buildHomeContent() 
-          : _currentIndex == 1 
-              ? _buildVideoContent() 
-              : TrackingScreen(
-                  order: OrderModel(
-                    orderId: "TRX-99201",
-                    productName: "Beras Premium Nusopa 5kg",
-                    productImage: "",
-                    price: 65000,
-                    status: "SEDANG DIKIRIM",
-                    namaEkspedisi: "J&T Express",
-                    nomorResi: "JT1234567890",
-                    fotoResiUrl: "https://unsplash.com", 
-                    linkCekLogistik: "https://jet.co.id", 
-                  ),
-                ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
-          selectedItemColor: const Color(0xFFFF5722), 
-          unselectedItemColor: Colors.grey,
-          showSelectedLabels: true,
-          showUnselectedLabels: true,
-          selectedLabelStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12),
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Beranda'),
-            BottomNavigationBarItem(icon: Icon(Icons.slideshow_outlined), activeIcon: Icon(Icons.slideshow), label: 'Video'),
-            BottomNavigationBarItem(icon: Icon(Icons.local_shipping_outlined), activeIcon: Icon(Icons.local_shipping), label: 'Pesanan'),
-          ],
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
-    );
-  }
-
-  Widget _buildHomeContent() {
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Container(
-              height: 140,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // 1. BLOK STATUS PESANAN (Khas Shopee dengan latar oranye/merah tipis)
+            Container(
               width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFF5722), Color(0xFFFF8A65)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFFFF5722), Color(0xFFFF7043)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
                 ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFFF5722).withOpacity(0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.local_shipping, color: Colors.white, size: 28),
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        order.status,
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Pesanan Anda sedang dalam perjalanan oleh kurir.',
+                        style: GoogleFonts.inter(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              child: Center(
-                child: Text(
-                  'Nusopa.Mart\nSederhana tapi Mewah',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    color: Colors.white, 
-                    fontSize: 18, 
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
+            ),
+
+            // 2. KARTU INFORMASI RESI & KURIR
+            Container(
+              margin: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.02),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: Color(0xFFFF5722), size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Informasi Resi & Kurir',
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Divider(height: 1, color: Color(0xFFEEEEEE)),
+                  ),
+                  
+                  // Detail Ekspedisi
+                  _buildDetailRow('Ekspedisi', order.namaEkspedisi, isBold: true),
+                  const SizedBox(height: 12),
+                  
+                  // Detail Nomor Resi + Tombol Salin
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Nomor Resi',
+                            style: GoogleFonts.inter(color: Colors.grey, fontSize: 13),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            order.nomorResi,
+                            style: GoogleFonts.inter(
+                              color: Colors.black87,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      OutlinedButton(
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: order.nomorResi));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Nomor resi berhasil disalin!')),
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFFF5722)),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: Text(
+                          'SALIN',
+                          style: GoogleFonts.inter(
+                            color: const Color(0xFFFF5722),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // 3. KARTU BUKTI FOTO RESI FISIK
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 12, bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Foto Resi Fisik:',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: Colors.black77,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Menangani jika foto kosong / default placeholder
+                  Container(
+                    width: double.infinity,
+                    height: 180,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFFE0E0E0)),
+                    ),
+                    child: const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.image_not_supported_outlined, color: Colors.grey, size: 40),
+                          SizedBox(height: 8),
+                          Text('Belum ada foto resi fisik', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // 4. TOMBOL LACAK UTAMA DI BAWAH KARTU
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: SizedBox(
+                width: double.infinity,
+                height: 46,
+                child: ElevatedButton(
+                  onPressed: () {
+                    // Logika membuka linkCekLogistik lewat url_launcher
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF5722),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'Lacak di Google Chrome',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
+          ],
         ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 4.0),
-            child: Text(
-              'Rekomendasi Produk',
-              style: GoogleFonts.inter(
-                fontSize: 16, 
-                fontWeight: FontWeight.bold, 
-                color: Colors.black87,
-              ),
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.all(16),
-          sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 0.75,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                return GestureDetector(
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Membuka Produk Sembako $index')),
-                    );
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.orange.shade50,
-                              borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(16),
-                              ),
-                            ),
-                            child: const Center(
-                              child: Icon(
-                                Icons.fastfood, 
-                                size: 50, 
-                                color: Color(0xFFFF5722),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Produk Sembako $index', 
-                                maxLines: 1, 
-                                overflow: TextOverflow.ellipsis, 
-                                style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Rp 15.000', 
-                                style: GoogleFonts.inter(
-                                  color: const Color(0xFFFF5722), 
-                                  fontWeight: FontWeight.bold, 
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-                );
-              },
-              childCount: 4, 
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildVideoContent() {
-    return Container(
-      color: Colors.black,
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Halaman Short Video Konten Seller',
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
-              CustomButton(
-                text: 'Beli Produk Video Ini',
-                icon: Icons.shopping_bag_outlined,
-                onPressed: () {
-                  // Aksi beli
-                },
-              ),
-            ],
+  Widget _buildDetailRow(String label, String value, {bool isBold = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.inter(color: Colors.grey, fontSize: 13),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: GoogleFonts.inter(
+            color: Colors.black87,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            fontSize: 14,
           ),
         ),
-      ),
+      ],
     );
   }
 }
