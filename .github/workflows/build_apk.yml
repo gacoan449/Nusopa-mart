@@ -26,18 +26,16 @@ jobs:
         with:
           channel: 'stable'
 
-      # PERBAIKAN 1: Memastikan file Gradle tidak terkunci dan bersih
       - name: Membersihkan Cache Flutter
         run: |
           flutter clean
           flutter pub get
 
-      # PERBAIKAN 2: Menjalankan proses build dengan deteksi file penuh
       - name: Proses Perakitan APK Rilis Final
         run: flutter build apk --release
 
+      # SEKARANG SUDAH BERSIH DARI BARIS GANDA (DOUBLE USES)
       - name: Unggah Hasil APK ke Dashboard GitHub
-        uses: actions/upload-activation@v4
         uses: actions/upload-artifact@v4
         with:
           name: Nusopa-Mart-Release-APK
