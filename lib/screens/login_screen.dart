@@ -1,7 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
+import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
 import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -16,34 +15,32 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passController = TextEditingController();
   bool _isLoading = false;
 
-  // ISI ALAMAT IP LAPTOP / DOMAIN VPS ANDA DI SINI
-  // Jika pakai Emulator Android bawaan, ganti localhost menjadi 10.0.2.2
-  final String _apiUrl = "http://10.0.2";
-
-  Future<void> _prosesLogin() async {
+  Future<void> _prosesLoginFirebase() async {
     if (_hpController.text.isEmpty || _passController.text.isEmpty) {
-      _tampilkanPesan("Harap isi semua kolom!");
+      _notif("Harap isi semua kolom!");
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      final respon = await http.post(
-        Uri.parse(_apiUrl),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "noHp": _hpController.text,
-          "password": _passController.text,
-        }),
-      );
+      // Mencari data akun di tabel 'users' cloud Firebase berdasarkan nomor HP
+      var query = await FirebaseFirestore.instance
+          .collection('users')
+          .where('noHp', isEqualTo: _hpController.text.trim())
+          .get();
 
-      final data = jsonDecode(respon.body);
+      if (query.docs.isEmpty) {
+        _notif("Nomor HP tidak terdaftar!");
+        return;
+      }
 
-      if (respon.statusCode == 200 && data['success'] == true) {
-        _tampilkanPesan("Selamat Datang, ${data['user']['nama']}!");
+      var userData = query.docs.first.data();
+
+      // Validasi password kecocokan secara lokal aman
+      if (userData['password'] == _passController.text) {
+        _notif("Selamat Datang, ${userData['nama']}!");
         
-        // Berhasil masuk, arahkan langsung ke HomeScreen utama
         if (mounted) {
           Navigator.pushReplacement(
             context,
@@ -51,16 +48,16 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         }
       } else {
-        _tampilkanPesan(data['message'] ?? "Login gagal!");
+        _notif("Password salah!");
       }
     } catch (e) {
-      _tampilkanPesan("Gagal terhubung ke server backend: $e");
+      _notif("Gagal terhubung ke Firebase Cloud: $e");
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
-  void _tampilkanPesan(String pesan) {
+  void _notif(String pesan) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(pesan)));
   }
 
@@ -79,8 +76,6 @@ class _LoginScreenState extends State<LoginScreen> {
               Text('Nusopa.Mart', style: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.bold, color: const Color(0xFFFF5722))),
               Text('Sederhana tapi Mewah', style: GoogleFonts.inter(color: Colors.grey, fontSize: 14)),
               const SizedBox(height: 40),
-              
-              // Input No HP
               TextField(
                 controller: _hpController,
                 keyboardType: TextInputType.phone,
@@ -91,8 +86,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              
-              // Input Password
               TextField(
                 controller: _passController,
                 obscureText: true,
@@ -103,21 +96,15 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 28),
-              
-              // Tombol Login Kapsul Mewah
               SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF5722),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-                  ),
-                  onPressed: _isLoading ? null : _prosesLogin,
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF5722), foregroundColor: Colors.white),
+                  onPressed: _isLoading ? null : _prosesLoginFirebase,
                   child: _isLoading 
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : Text('Masuk Aplikasi', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16)),
+                      : const Text('Masuk Aplikasi (Firebase)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 ),
               ),
             ],
