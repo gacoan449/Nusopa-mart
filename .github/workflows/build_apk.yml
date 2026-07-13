@@ -1,0 +1,46 @@
+name: Nusopa.Mart Auto Build APK
+
+# Alur otomatisasi ini akan menyala secara otomatis ketika ada "git push" ke branch main atau master
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build-android:
+    name: Merakit APK Nusopa Mart di Cloud
+    runs-on: ubuntu-latest # Menggunakan server Linux Ubuntu tercepat dari GitHub
+
+    steps:
+      # 1. Mengunduh kode sumber proyek Flutter Anda dari repositori GitHub
+      - name: Ambil Source Code dari Repo
+        uses: actions/checkout@v4
+
+      # 2. Menginstal Java JDK yang dibutuhkan oleh sistem Android untuk melakukan kompilasi
+      - name: Konfigurasi Java JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # 3. Menginstal SDK Flutter secara otomatis di server GitHub cloud
+      - name: Konfigurasi Mesin SDK Flutter
+        uses: actions/subosito/flutter-action@v2
+        with:
+          channel: 'stable' # Menggunakan versi Flutter paling stabil
+
+      # 4. Mengunduh semua library/pustaka (Firebase, Google Fonts, dll) dari pubspec.yaml
+      - name: Mengunduh Dependency Library
+        run: flutter pub get
+
+      # 5. Memulai perintah perakitan APK rilis final secara otomatis tanpa Android Studio fisik
+      - name: Proses Perakitan APK Rilis Final
+        run: flutter build apk --release
+
+      # 6. Mengunggah hasil jadi APK rilis dari server cloud ke tab Actions agar bisa Anda download
+      - name: Unggah Hasil APK ke Dashboard GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nusopa-Mart-Release-APK # Nama paket unduhan di web
+          path: build/app/outputs/flutter-apk/app-release.apk # Jalur file matang hasil rakitan
