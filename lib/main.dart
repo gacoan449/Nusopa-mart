@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'screens/home_screen.dart'; 
+// Memastikan import menggunakan package project Anda agar terbaca sempurna oleh compiler
+import 'package:nusopa_mart/screens/home_screen.dart'; 
 
 void main() {
   runApp(const NusopaMartApp());
@@ -22,7 +23,6 @@ class NusopaMartApp extends StatelessWidget {
         ),
         textTheme: GoogleFonts.interTextTheme(),
       ),
-      // Kata const di depan HomeScreen sudah dihapus agar tidak error saat build rilis
       home: HomeScreen(), 
     );
   }
