@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/order_model.dart';
-import '../widgets/custom_button.dart'; // Mengimpor tombol mewah dari Bagian 1
+import '../widgets/custom_button.dart'; 
 import 'tracking_screen.dart';
-import 'seller_dashboard.dart'; // Mengimpor halaman seller
+import 'seller_dashboard.dart'; 
+import 'chat_admin_screen.dart'; // Mengimpor halaman chat admin mewah
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -50,10 +51,15 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
+          // TOMBOL UTAMA UNTUK MEMBUKA CHAT ADMIN QRIS
           IconButton(
             icon: const Icon(Icons.chat_bubble_outline, color: Colors.black87),
+            tooltip: 'Chat Admin QRIS',
             onPressed: () {
-              // Jalur ke fitur chat admin/seller
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ChatAdminScreen()),
+              );
             },
           )
         ],
@@ -210,7 +216,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
-              // Contoh implementasi tombol mewah dari Bagian 1 di dalam konten
               CustomButton(
                 text: 'Beli Produk Video Ini',
                 icon: Icons.shopping_bag_outlined,
