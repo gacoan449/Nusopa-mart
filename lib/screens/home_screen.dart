@@ -4,7 +4,7 @@ import '../models/order_model.dart';
 import '../widgets/custom_button.dart'; 
 import 'tracking_screen.dart';
 import 'seller_dashboard.dart'; 
-import 'chat_admin_screen.dart'; 
+import 'admin_core.dart'; // Jalur import baru yang sudah disesuaikan
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,7 +16,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  // Konstanta Warna Tema Batik Modern (Deep Indigo & Heritage Gold/Amber & Shopee Orange)
+  // Konstanta Warna Tema Batik Modern
   static const Color primaryColor = Color(0xFFFF5722); // Orange Utama
   static const Color batikDark = Color(0xFF2C1B18);    // Cokelat Batik Tua
   static const Color batikGold = Color(0xFFD4AF37);    // Emas Heritage
@@ -60,6 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.chat_bubble_outline, color: batikDark),
             tooltip: 'Layanan Pengguna & Konfirmasi',
             onPressed: () {
+              // Navigasi dialihkan ke ChatAdminScreen yang berada di dalam admin_core.dart
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const ChatAdminScreen()),
@@ -131,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 borderRadius: BorderRadius.circular(16),
                 image: const DecorationImage(
-                  image: NetworkImage('https://www.transparenttextures.com/patterns/batik-fabric.png'), // Aksen tekstur batik transparan bawaan web
+                  image: NetworkImage('https://www.transparenttextures.com/patterns/batik-fabric.png'), 
                   repeat: ImageRepeat.repeat,
                   opacity: 0.15,
                 ),
@@ -177,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
 
-        // SEKSI MENU KATEGORI POPULER (Gaya Grid Shopee Menu)
+        // SEKSI MENU KATEGORI POPULER
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -195,12 +196,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
         const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-        // SUB-TITLE
+        // SUB-TITLE FLASH SALE
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 12.0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.between,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween, // FIX: Sudah diperbaiki dari '.between' menjadi '.spaceBetween'
               children: [
                 Text(
                   'Koleksi Flash Sale Manual',
@@ -231,7 +232,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             delegate: SliverChildBuilderDelegate(
               (context, index) {
-                // List Mock Data Profesional tanpa Dummy Desa
                 List<String> titles = [
                   'Smartwatch Series X Waterproof',
                   'Casual Sneakers Breathable Solid',
