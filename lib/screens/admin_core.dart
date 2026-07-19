@@ -61,7 +61,8 @@ class SuperAdminDashboard extends StatelessWidget {
             // MENU TINDAKAN KRITIKAL
             Text('Tindakan Cepat', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16, color: adminDark)),
             const SizedBox(height: 12),
-            _buildAdminMenu(Icons.store_off, 'Blacklist & Suspend Toko', 'Blokir toko penipu/melanggar aturan', dangerColor, context),
+            // FIX: Mengganti Icons.store_off menjadi Icons.block
+            _buildAdminMenu(Icons.block, 'Blacklist & Suspend Toko', 'Blokir toko penipu/melanggar aturan', dangerColor, context),
             _buildAdminMenu(Icons.verified, 'Verifikasi Top-Up Tiket', 'Setujui mutasi transfer penjual', Colors.blue.shade800, context),
             _buildAdminMenu(Icons.price_check, 'Pencairan Dana Penjual', 'Transfer saldo ke rekening penjual', Colors.green.shade800, context),
             _buildAdminMenu(Icons.admin_panel_settings, 'Log Aktivitas Sistem', 'Pantau arus keluar masuk aplikasi', adminDark, context),
