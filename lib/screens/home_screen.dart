@@ -74,8 +74,10 @@ class _HomeScreenState extends State<HomeScreen> {
           : _currentIndex == 1 
               ? _buildVideoContent() 
               : TrackingScreen(
-                  order: OrderModel(
+                  order: const OrderModel(
                     orderId: "TRX-10029384",
+                    buyerId: "USER-99281", // FIX: Menambahkan parameter wajib
+                    sellerId: "TOKO-11029", // FIX: Menambahkan parameter wajib
                     productName: "Premium Elegant Daily Wear Edition XL",
                     productImage: "",
                     price: 185000,
