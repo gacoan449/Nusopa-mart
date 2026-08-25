@@ -15,6 +15,7 @@ dependencies:
   google_fonts: ^6.2.0        # Font modern agar tidak kaku
   url_launcher: ^6.3.0        # Untuk membuka link pelacakan di Google Chrome
   image_picker: ^1.1.2        # Untuk seller mengambil foto resi fisik lewat kamera
+  intl: ^0.19.0               # <-- DITAMBAHKAN DI SINI (Wajib untuk format Rupiah)
 
   # INTI FIREBASE UNTUK DATA NYATA (SIAP RILIS INTERNET)
   firebase_core: ^3.1.0       # Diperbarui sedikit ke versi minor stabil
