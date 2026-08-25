@@ -4,7 +4,7 @@ import '../models/order_model.dart';
 import '../widgets/custom_button.dart'; 
 import 'tracking_screen.dart';
 import 'seller_dashboard.dart'; 
-import 'admin_core.dart'; // Jalur import baru yang sudah disesuaikan
+import 'admin_core.dart'; 
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,11 +16,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  // Konstanta Warna Tema Batik Modern
-  static const Color primaryColor = Color(0xFFFF5722); // Orange Utama
-  static const Color batikDark = Color(0xFF2C1B18);    // Cokelat Batik Tua
-  static const Color batikGold = Color(0xFFD4AF37);    // Emas Heritage
-  static const Color bgCanvas = Color(0xFFF8F9FA);     // Background General
+  // Warna Khas Elegan (Navy Blue & Pure White)
+  static const Color primaryBlue = Color(0xFF1A237E); // Deep Navy Blue
+  static const Color bgCanvas = Color(0xFFF8FAFC);    // Cool Soft White
+
+  // Simulasi state data produk dari database (kosong agar seller yang mengisi)
+  List<dynamic> dynamicProducts = []; 
+  bool isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -29,17 +31,19 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0.5,
+        shadowColor: Colors.black12,
         title: Container(
-          height: 42,
+          height: 40,
           decoration: BoxDecoration(
-            color: const Color(0xFFF1F3F5),
-            borderRadius: BorderRadius.circular(12), 
+            color: bgCanvas,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade200),
           ),
           child: TextField(
             decoration: InputDecoration(
-              hintText: 'Cari produk, merek, atau toko...',
-              hintStyle: GoogleFonts.inter(color: Colors.grey, fontSize: 13),
-              prefixIcon: const Icon(Icons.search, color: primaryColor),
+              hintText: 'Cari koleksi eksklusif...',
+              hintStyle: GoogleFonts.inter(color: Colors.grey.shade400, fontSize: 13),
+              prefixIcon: const Icon(Icons.search, color: primaryBlue, size: 20),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(vertical: 10),
             ),
@@ -47,26 +51,21 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.storefront, color: primaryColor),
-            tooltip: 'Kemitraan Seller',
+            icon: const Icon(Icons.shopping_bag_outlined, color: primaryBlue),
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SellerDashboard()),
-              );
+              // TODO: Navigasi ke Keranjang
             },
           ),
           IconButton(
-            icon: const Icon(Icons.chat_bubble_outline, color: batikDark),
-            tooltip: 'Layanan Pengguna & Konfirmasi',
+            icon: const Icon(Icons.chat_bubble_outline, color: primaryBlue),
             onPressed: () {
-              // Navigasi dialihkan ke ChatAdminScreen yang berada di dalam admin_core.dart
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const ChatAdminScreen()),
               );
             },
-          )
+          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: _currentIndex == 0 
@@ -76,9 +75,9 @@ class _HomeScreenState extends State<HomeScreen> {
               : TrackingScreen(
                   order: const OrderModel(
                     orderId: "TRX-10029384",
-                    buyerId: "USER-99281", // FIX: Menambahkan parameter wajib
-                    sellerId: "TOKO-11029", // FIX: Menambahkan parameter wajib
-                    productName: "Premium Elegant Daily Wear Edition XL",
+                    buyerId: "USER-99281", 
+                    sellerId: "TOKO-11029", 
+                    productName: "Premium Elegant Daily Wear",
                     productImage: "",
                     price: 185000,
                     status: "DALAM PENGIRIMAN",
@@ -89,27 +88,24 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: Colors.black12, width: 0.5)),
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
+          backgroundColor: Colors.white,
           onTap: (index) => setState(() => _currentIndex = index),
-          selectedItemColor: primaryColor, 
-          unselectedItemColor: Colors.grey,
-          showSelectedLabels: true,
-          showUnselectedLabels: true,
-          selectedLabelStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 11),
+          selectedItemColor: primaryBlue, 
+          unselectedItemColor: Colors.grey.shade400,
+          type: BottomNavigationBarType.fixed,
+          elevation: 0,
+          selectedLabelStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 11),
+          unselectedLabelStyle: GoogleFonts.inter(fontSize: 11),
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Rekomendasi'),
-            BottomNavigationBarItem(icon: Icon(Icons.slideshow_outlined), activeIcon: Icon(Icons.slideshow), label: 'Review Live'),
-            BottomNavigationBarItem(icon: Icon(Icons.local_shipping_outlined), activeIcon: Icon(Icons.local_shipping), label: 'Transaksi'),
+            BottomNavigationBarItem(icon: Icon(Icons.explore_outlined), activeIcon: Icon(Icons.explore), label: 'Discover'),
+            BottomNavigationBarItem(icon: Icon(Icons.play_circle_outline), activeIcon: Icon(Icons.play_circle), label: 'Live'),
+            BottomNavigationBarItem(icon: Icon(Icons.notifications_none), activeIcon: Icon(Icons.notifications), label: 'Updates'),
+            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
           ],
         ),
       ),
@@ -117,259 +113,218 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHomeContent() {
-    return CustomScrollView(
-      slivers: [
-        // PROMOTIONAL BANNER DENGAN AKSEN MOTIF BATIK MODERN
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Container(
-              height: 150,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [batikDark, Color(0xFF4A312C)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                image: const DecorationImage(
-                  image: NetworkImage('https://www.transparenttextures.com/patterns/batik-fabric.png'), 
-                  repeat: ImageRepeat.repeat,
-                  opacity: 0.15,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: batikDark.withOpacity(0.2),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
+    return RefreshIndicator(
+      color: primaryBlue,
+      backgroundColor: Colors.white,
+      onRefresh: () async {
+        // TODO: Panggil fungsi API fetch data produk di sini
+        await Future.delayed(const Duration(seconds: 1));
+      },
+      child: CustomScrollView(
+        slivers: [
+          // Banner Utama Elegan
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Container(
+                height: 160,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [primaryBlue, Color(0xFF283593)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                ],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: primaryBlue.withOpacity(0.2),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                    )
+                  ],
+                ),
+                child: PageView(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: batikGold,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        'PROMO KEBANGGAAN',
-                        style: GoogleFonts.inter(color: batikDark, fontSize: 10, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Kurasi Produk Terbaik\nUntuk Kenyamanan Anda',
-                      style: GoogleFonts.inter(
-                        color: Colors.white, 
-                        fontSize: 18, 
-                        fontWeight: FontWeight.bold,
-                        height: 1.2,
-                      ),
-                    ),
+                    _buildBannerPlaceholder('Exclusive Pre-Fall Collection'),
+                    _buildBannerPlaceholder('Member Only Privileges'),
                   ],
                 ),
               ),
             ),
           ),
-        ),
 
-        // SEKSI MENU KATEGORI POPULER
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildCategoryItem(Icons.style, 'Fashion'),
-                _buildCategoryItem(Icons.devices, 'Elektronik'),
-                Icons.health_and_safety.hashCode != 0 ? _buildCategoryItem(Icons.health_and_safety, 'Kecantikan') : _buildCategoryItem(Icons.face, 'Kecantikan'),
-                _buildCategoryItem(Icons.home_max, 'Peralatan'),
-              ],
+          // Menu Kategori Minimalis
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildCategoryItem(Icons.diamond_outlined, 'Luxury'),
+                  _buildCategoryItem(Icons.checkroom_outlined, 'Boutique'),
+                  _buildCategoryItem(Icons.card_membership, 'Rewards'),
+                  _buildCategoryItem(Icons.add_business_outlined, 'Become Seller', onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const SellerDashboard()),
+                    );
+                  }),
+                ],
+              ),
             ),
           ),
-        ),
 
-        const SliverToBoxAdapter(child: SizedBox(height: 16)),
+          const SliverToBoxAdapter(child: Divider(color: Colors.black12, thickness: 0.5)),
 
-        // SUB-TITLE FLASH SALE
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 12.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween, // FIX: Sudah diperbaiki dari '.between' menjadi '.spaceBetween'
-              children: [
-                Text(
-                  'Koleksi Flash Sale Manual',
-                  style: GoogleFonts.inter(
-                    fontSize: 15, 
-                    fontWeight: FontWeight.bold, 
-                    color: batikDark,
-                  ),
+          // Judul Seksi Produk
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'CURATED FOR YOU',
+                style: GoogleFonts.inter(
+                  fontSize: 13, 
+                  fontWeight: FontWeight.w700, 
+                  letterSpacing: 1.2,
+                  color: primaryBlue,
                 ),
-                Text(
-                  'Lihat Semua',
-                  style: GoogleFonts.inter(fontSize: 12, color: primaryColor, fontWeight: FontWeight.w600),
-                )
-              ],
+              ),
             ),
           ),
-        ),
 
-        // GRID PRODUK PROFESIONAL
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 0.72,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                List<String> titles = [
-                  'Smartwatch Series X Waterproof',
-                  'Casual Sneakers Breathable Solid',
-                  'Premium Cotton T-Shirt Oversized',
-                  'Ergonomic Wireless Mouse Silent'
-                ];
-                List<String> prices = ['Rp 249.000', 'Rp 389.000', 'Rp 125.000', 'Rp 89.000'];
-
-                return Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200, width: 0.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.02),
-                        blurRadius: 6,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
+          // Logika Produk Dinamis
+          if (dynamicProducts.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                child: Center(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                          ),
-                          child: const Center(
-                            child: Icon(Icons.image, size: 40, color: Colors.grey),
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(10.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              titles[index % 4], 
-                              maxLines: 2, 
-                              overflow: TextOverflow.ellipsis, 
-                              style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 13, color: batikDark),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              prices[index % 4], 
-                              style: GoogleFonts.inter(
-                                color: primaryColor, 
-                                fontWeight: FontWeight.bold, 
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                const Icon(Icons.star, color: batikGold, size: 12),
-                                const SizedBox(width: 2),
-                                Text(
-                                  '4.8 | Terjual Manual',
-                                  style: GoogleFonts.inter(fontSize: 10, color: Colors.grey),
-                                )
-                              ],
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.03),
+                              blurRadius: 20,
                             )
                           ],
                         ),
-                      )
+                        child: Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey.shade300),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Koleksi Kosong',
+                        style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: primaryBlue),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Belum ada produk eksklusif yang dirilis oleh mitra.',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade500, height: 1.5),
+                      ),
                     ],
                   ),
-                );
-              },
-              childCount: 4, 
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.70,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    // TODO: Ganti dengan mapping dari dynamicProducts[index]
+                    return const SizedBox(); 
+                  },
+                  childCount: dynamicProducts.length, 
+                ),
+              ),
             ),
-          ),
-        ),
-        const SliverToBoxAdapter(child: SizedBox(height: 32)),
-      ],
+            
+          const SliverToBoxAdapter(child: SizedBox(height: 40)), // Spacer bawah
+        ],
+      ),
     );
   }
 
-  Widget _buildCategoryItem(IconData icon, String label) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.orange.shade100, width: 1),
+  Widget _buildBannerPlaceholder(String text) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.inter(
+            color: Colors.white, 
+            fontWeight: FontWeight.w300, 
+            fontSize: 20,
+            letterSpacing: 1.5,
           ),
-          child: Icon(icon, color: batikDark, size: 24),
         ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: batikDark),
-        )
-      ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryItem(IconData icon, String label, {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap ?? () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Membuka koleksi $label...'),
+            backgroundColor: primaryBlue,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
+            ),
+            child: Icon(icon, color: primaryBlue, size: 24),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            label,
+            style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.black87),
+          )
+        ],
+      ),
     );
   }
 
   Widget _buildVideoContent() {
     return Container(
       color: Colors.black,
-      child: Stack(
-        children: [
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.play_circle_outline, size: 80, color: Colors.white54),
-                const SizedBox(height: 16),
-                Text(
-                  'Review Produk Interaktif & Live Promosi',
-                  style: GoogleFonts.inter(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
-                ),
-              ],
-            ),
-          ),
-          Positioned(
-            bottom: 30,
-            left: 20,
-            right: 20,
-            child: CustomButton(
-              text: 'Hubungi Merchant Untuk Produk Ini',
-              icon: Icons.shopping_bag_outlined,
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Membuka Chat Form Pemesanan Manual...')),
-                );
-              },
-            ),
-          )
-        ],
+      child: Center(
+        child: Text(
+          'Live Showcase Eksklusif',
+          style: GoogleFonts.inter(color: Colors.white, letterSpacing: 1.0),
+        ),
       ),
     );
   }
