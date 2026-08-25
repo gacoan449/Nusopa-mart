@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Ditambahkan untuk fitur Salin/Copy
+import 'package:flutter/services.dart'; 
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/order_model.dart';
@@ -9,10 +9,11 @@ class TrackingScreen extends StatelessWidget {
 
   const TrackingScreen({super.key, required this.order});
 
-  // Konstanta Warna Tema Profesional
-  static const Color primaryColor = Color(0xFFFF5722);
-  static const Color batikDark = Color(0xFF2C1B18);
-  static const Color bgCanvas = Color(0xFFF8F9FA);
+  // Konstanta Warna Tema Mewah (Navy & Putih)
+  static const Color primaryBlue = Color(0xFF1A237E); // Deep Navy Blue
+  static const Color secondaryBlue = Color(0xFF283593); // Gradasi Navy
+  static const Color textDark = Color(0xFF1E293B); // Dark Slate untuk teks
+  static const Color bgCanvas = Color(0xFFF8FAFC); // Background Putih Bersih
 
   // Fungsi internal membuka Browser eksternal (Chrome/Safari)
   Future<void> _bukaLinkWeb(BuildContext context, String urlString) async {
@@ -26,8 +27,10 @@ class TrackingScreen extends StatelessWidget {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Gagal membuka web pelacakan. Pastikan link valid.', style: GoogleFonts.inter(fontSize: 13)),
-          backgroundColor: batikDark,
+          content: Text('Gagal membuka web pelacakan. Pastikan link valid.', style: GoogleFonts.inter(fontSize: 13, color: Colors.white)),
+          backgroundColor: Colors.red.shade800,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -38,9 +41,10 @@ class TrackingScreen extends StatelessWidget {
     Clipboard.setData(ClipboardData(text: resi));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Nomor resi berhasil disalin!', style: GoogleFonts.inter(fontSize: 13)),
-        backgroundColor: Colors.green.shade700,
+        content: Text('Nomor resi JNE berhasil disalin!', style: GoogleFonts.inter(fontSize: 13, color: Colors.white)),
+        backgroundColor: primaryBlue,
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -51,25 +55,29 @@ class TrackingScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: bgCanvas,
       appBar: AppBar(
-        title: Text('Detail Pengiriman', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18, color: batikDark)),
+        title: Text('Lacak Pengiriman', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18, color: primaryBlue)),
         backgroundColor: Colors.white,
         elevation: 0.5,
-        iconTheme: const IconThemeData(color: batikDark),
+        shadowColor: Colors.black12,
+        iconTheme: const IconThemeData(color: primaryBlue),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // KARTU STATUS PESANAN (PREMIUM)
+            // KARTU STATUS PESANAN (PREMIUM GRADIENT)
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                gradient: const LinearGradient(
+                  colors: [primaryBlue, secondaryBlue],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade200, width: 1),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 12, offset: const Offset(0, 6)),
+                  BoxShadow(color: primaryBlue.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
                 ],
               ),
               child: Row(
@@ -77,21 +85,21 @@ class TrackingScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: primaryColor.withOpacity(0.1),
+                      color: Colors.white.withOpacity(0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.local_shipping_outlined, color: primaryColor, size: 28),
+                    child: const Icon(Icons.local_shipping_outlined, color: Colors.white, size: 28),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Status Saat Ini', style: GoogleFonts.inter(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w500)),
+                        Text('Status Saat Ini', style: GoogleFonts.inter(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500)),
                         const SizedBox(height: 4),
                         Text(
                           order.status,
-                          style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16, color: batikDark),
+                          style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 16, color: Colors.white, letterSpacing: 0.5),
                         ),
                       ],
                     ),
@@ -101,8 +109,11 @@ class TrackingScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // INFORMASI RESI & KURIR (DENGAN FITUR COPY)
-            Text('Informasi Kurir & Resi', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15, color: batikDark)),
+            // INFORMASI RESI & KURIR
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: Text('Detail Logistik', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15, color: textDark)),
+            ),
             const SizedBox(height: 12),
             Container(
               width: double.infinity,
@@ -111,11 +122,15 @@ class TrackingScreen extends StatelessWidget {
                 color: Colors.white, 
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.grey.shade200, width: 1),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildInfoRow('Mitra Ekspedisi', order.namaEkspedisi ?? 'Menunggu konfirmasi penjual'),
+                  // Fallback string langsung diarahkan ke JNE
+                  _buildInfoRow('Mitra Ekspedisi', order.namaEkspedisi ?? 'JNE (Manual Flat Rate)'),
                   const Divider(height: 32, color: Color(0xFFF1F3F5)),
                   
                   // Baris Nomor Resi dengan Tombol Salin
@@ -124,23 +139,23 @@ class TrackingScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Expanded(
-                        child: _buildInfoRow('Nomor Resi', order.nomorResi ?? 'Belum diterbitkan'),
+                        child: _buildInfoRow('Nomor Resi', order.nomorResi ?? 'Belum diterbitkan penjual'),
                       ),
                       if (order.nomorResi != null && order.nomorResi!.isNotEmpty)
                         GestureDetector(
                           onTap: () => _salinResi(context, order.nomorResi!),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
+                              color: primaryBlue.withOpacity(0.08),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey.shade300),
+                              border: Border.all(color: primaryBlue.withOpacity(0.2)),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.copy, size: 14, color: batikDark),
-                                const SizedBox(width: 4),
-                                Text('Salin', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: batikDark)),
+                                const Icon(Icons.copy, size: 14, color: primaryBlue),
+                                const SizedBox(width: 6),
+                                Text('Salin', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: primaryBlue)),
                               ],
                             ),
                           ),
@@ -150,54 +165,67 @@ class TrackingScreen extends StatelessWidget {
                   const Divider(height: 32, color: Color(0xFFF1F3F5)),
                   
                   // BUKTI FOTO RESI FISIK
-                  Text('Bukti Foto Resi:', style: GoogleFonts.inter(color: Colors.grey.shade600, fontSize: 12)),
+                  Text('Bukti Foto Resi Fisik:', style: GoogleFonts.inter(color: Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 12),
                   order.fotoResiUrl != null && order.fotoResiUrl!.isNotEmpty
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(12),
                           child: Image.network(
                             order.fotoResiUrl!,
-                            height: 160,
+                            height: 180,
                             width: double.infinity,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder('Gambar resi gagal dimuat'),
+                            errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder('Gagal memuat gambar resi'),
                           ),
                         )
-                      : _buildImagePlaceholder('Penjual belum mengunggah foto resi'),
+                      : _buildImagePlaceholder('Penjual belum mengunggah resi fisik'),
                 ],
               ),
             ),
             const SizedBox(height: 32),
 
-            // TOMBOL UTAMA CEK RESI EKSTERNAL
+            // TOMBOL UTAMA CEK RESI EKSTERNAL (PREMIUM GRADIENT)
             if (order.linkCekLogistik != null && order.linkCekLogistik!.isNotEmpty)
-              ElevatedButton(
-                onPressed: () {
-                  // Beri notifikasi salin resi otomatis sebelum buka browser
-                  if (order.nomorResi != null) {
-                    Clipboard.setData(ClipboardData(text: order.nomorResi!));
-                  }
-                  _bukaLinkWeb(context, order.linkCekLogistik!);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  minimumSize: const Size(double.infinity, 52),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.travel_explore, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Lacak di Web Ekspedisi',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
+              Container(
+                height: 52,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: const LinearGradient(
+                    colors: [primaryBlue, secondaryBlue],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(color: primaryBlue.withOpacity(0.25), blurRadius: 12, offset: const Offset(0, 6)),
                   ],
                 ),
+                child: ElevatedButton(
+                  onPressed: () {
+                    // Beri notifikasi salin resi otomatis sebelum buka browser
+                    if (order.nomorResi != null) {
+                      Clipboard.setData(ClipboardData(text: order.nomorResi!));
+                    }
+                    _bukaLinkWeb(context, order.linkCekLogistik!);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.travel_explore, size: 20, color: Colors.white),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Lacak di Web JNE',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white, letterSpacing: 0.5),
+                      ),
+                    ],
+                  ),
+                ),
               ),
+              const SizedBox(height: 24),
           ],
         ),
       ),
@@ -209,9 +237,9 @@ class TrackingScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: GoogleFonts.inter(color: Colors.grey.shade600, fontSize: 12)),
+        Text(label, style: GoogleFonts.inter(color: Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.w500)),
         const SizedBox(height: 6),
-        Text(value, style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15, color: batikDark)),
+        Text(value, style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 15, color: textDark)),
       ],
     );
   }
@@ -219,10 +247,10 @@ class TrackingScreen extends StatelessWidget {
   // Widget Pembantu: Placeholder Gambar Resi
   Widget _buildImagePlaceholder(String message) {
     return Container(
-      height: 120,
+      height: 140,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.grey.shade100, 
+        color: bgCanvas, 
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
       ),
@@ -230,9 +258,9 @@ class TrackingScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.receipt_long, color: Colors.grey.shade400, size: 32),
-            const SizedBox(height: 8),
-            Text(message, style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+            Icon(Icons.receipt_long_outlined, color: Colors.grey.shade400, size: 36),
+            const SizedBox(height: 12),
+            Text(message, style: GoogleFonts.inter(color: Colors.grey.shade500, fontSize: 12)),
           ],
         ),
       ),
