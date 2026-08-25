@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-// import 'package:firebase_auth/firebase_auth.dart'; // Wajib diaktifkan untuk keamanan produksi
+// import 'package:firebase_auth/firebase_auth.dart'; 
 // import 'package:cloud_firestore/cloud_firestore.dart'; 
 import 'home_screen.dart';
-// import 'register_screen.dart'; // File pendaftaran (dibuat nanti)
+import 'super_admin_dashboard.dart'; // Pastikan file ini di-import dengan benar
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,6 +17,12 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passController = TextEditingController();
   bool _isLoading = false;
   bool _isPasswordVisible = false;
+
+  // --- KUNCI RAHASIA SUPER ADMIN (LEVEL KETAT) ---
+  // Jangan pernah membagikan kredensial ini di client-side pada produksi skala besar.
+  // Untuk keamanan maksimal nanti, verifikasi ini ditarik via Firebase Custom Claims / Backend.
+  static const String _adminSecretEmail = "ceo.admin@nusopa.mart";
+  static const String _adminSecretPass = "NusopaMaster2026SecureKey!";
 
   // Konstanta Warna Tema Mewah (Navy Blue & Cool White)
   static const Color primaryBlue = Color(0xFF1A237E); // Deep Navy Blue
@@ -32,7 +38,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _prosesLoginProfesional() async {
-    if (_emailPhoneController.text.isEmpty || _passController.text.isEmpty) {
+    final String inputEmail = _emailPhoneController.text.trim();
+    final String inputPass = _passController.text;
+
+    if (inputEmail.isEmpty || inputPass.isEmpty) {
       _notif("Mohon lengkapi email/nomor HP dan password Anda.");
       return;
     }
@@ -40,18 +49,30 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
+      // 1. CEK APAKAH INI PINTU MASUK RAHASIA ADMIN
+      if (inputEmail == _adminSecretEmail && inputPass == _adminSecretPass) {
+        // Simulasi validasi sistem super admin
+        await Future.delayed(const Duration(milliseconds: 800));
+        
+        if (mounted) {
+          _notif("Akses Super Admin Dikonfirmasi. Selamat Datang, CEO.");
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const SuperAdminDashboard()),
+          );
+        }
+        return; // Hentikan eksekusi agar tidak lanjut ke login buyer/seller
+      }
+
+      // 2. JIKA BUKAN ADMIN, LANJUTKAN ALUR LOGIN NORMAL (BUYER / SELLER)
       /* 
-      // LOGIKA FIREBASE AUTHENTICATION (Standar Industri)
       await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailPhoneController.text.trim(),
-        password: _passController.text,
+        email: inputEmail,
+        password: inputPass,
       );
-      
-      // Ambil role user dari Firestore setelah Auth berhasil
-      // DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       */
 
-      // Simulasi delay jaringan
+      // Simulasi delay jaringan normal
       await Future.delayed(const Duration(seconds: 2));
 
       _notif("Autentikasi Berhasil. Selamat Datang!");
@@ -83,7 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgCanvas, // Menggunakan background soft white
+      backgroundColor: bgCanvas,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -92,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // HEADER LOGO & BRANDING (Mewah dengan Gradasi)
+                // HEADER LOGO & BRANDING
                 Center(
                   child: Container(
                     padding: const EdgeInsets.all(18),
@@ -223,9 +244,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {
-                      _notif("Membuka halaman pemulihan sandi...");
-                    },
+                    onPressed: () => _notif("Membuka halaman pemulihan sandi..."),
                     style: TextButton.styleFrom(
                       foregroundColor: primaryBlue,
                       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
@@ -240,7 +259,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // TOMBOL LOGIN UTAMA (Dengan Gradasi)
+                // TOMBOL LOGIN UTAMA
                 Container(
                   height: 52,
                   decoration: BoxDecoration(
@@ -297,7 +316,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // TOMBOL DAFTAR / MULAI JUAL (Minimalis Outline)
+                // TOMBOL DAFTAR
                 OutlinedButton(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: primaryBlue,
@@ -308,9 +327,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: () {
-                    _notif("Navigasi ke Halaman Registrasi Pembeli/Penjual");
-                  },
+                  onPressed: () => _notif("Navigasi ke Halaman Registrasi Pembeli/Penjual"),
                   child: Text(
                     'Daftar Akun Nusopa.Mart',
                     style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14),
