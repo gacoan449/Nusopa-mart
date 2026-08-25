@@ -18,11 +18,11 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   bool _isPasswordVisible = false;
 
-  // Konstanta Warna Tema Batik Modern
-  static const Color primaryColor = Color(0xFFFF5722);
-  static const Color batikDark = Color(0xFF2C1B18);
-  static const Color batikGold = Color(0xFFD4AF37);
-  static const Color bgCanvas = Color(0xFFF8F9FA);
+  // Konstanta Warna Tema Mewah (Navy Blue & Cool White)
+  static const Color primaryBlue = Color(0xFF1A237E); // Deep Navy Blue
+  static const Color secondaryBlue = Color(0xFF283593); // Gradasi Navy
+  static const Color textDark = Color(0xFF1E293B); // Dark Slate untuk teks
+  static const Color bgCanvas = Color(0xFFF8FAFC); // Background Putih Bersih
 
   @override
   void dispose() {
@@ -72,9 +72,10 @@ class _LoginScreenState extends State<LoginScreen> {
   void _notif(String pesan) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(pesan, style: GoogleFonts.inter(fontSize: 13)),
-        backgroundColor: batikDark,
+        content: Text(pesan, style: GoogleFonts.inter(fontSize: 13, color: Colors.white)),
+        backgroundColor: primaryBlue,
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
@@ -82,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bgCanvas, // Menggunakan background soft white
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -91,15 +92,26 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // HEADER LOGO & BRANDING
+                // HEADER LOGO & BRANDING (Mewah dengan Gradasi)
                 Center(
                   child: Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      color: primaryColor.withOpacity(0.1),
+                      gradient: const LinearGradient(
+                        colors: [primaryBlue, secondaryBlue],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                       shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: primaryBlue.withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
                     ),
-                    child: const Icon(Icons.shopping_bag_outlined, size: 64, color: primaryColor),
+                    child: const Icon(Icons.shopping_bag_outlined, size: 56, color: Colors.white),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -108,8 +120,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   textAlign: TextAlign.center,
                   style: GoogleFonts.inter(
                     fontSize: 28, 
-                    fontWeight: FontWeight.bold, 
-                    color: batikDark,
+                    fontWeight: FontWeight.w800, 
+                    color: primaryBlue,
                     letterSpacing: -0.5,
                   ),
                 ),
@@ -117,68 +129,92 @@ class _LoginScreenState extends State<LoginScreen> {
                 Text(
                   'Kurasi Kualitas, Kenyamanan Berbelanja',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(color: Colors.grey.shade600, fontSize: 14),
+                  style: GoogleFonts.inter(color: Colors.grey.shade500, fontSize: 13, letterSpacing: 0.5),
                 ),
                 const SizedBox(height: 48),
 
                 // FORM INPUT KREDENSIAL
                 Text(
                   'Masuk ke Akun Anda',
-                  style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: batikDark),
+                  style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: textDark),
                 ),
                 const SizedBox(height: 16),
                 
-                TextField(
-                  controller: _emailPhoneController,
-                  keyboardType: TextInputType.emailAddress,
-                  style: GoogleFonts.inter(fontSize: 14),
-                  decoration: InputDecoration(
-                    labelText: 'Email atau Nomor Handphone',
-                    labelStyle: GoogleFonts.inter(color: Colors.grey.shade600, fontSize: 13),
-                    prefixIcon: const Icon(Icons.person_outline, color: primaryColor),
-                    filled: true,
-                    fillColor: bgCanvas,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: primaryColor, width: 1.5),
+                // Form Email/HP
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: _emailPhoneController,
+                    keyboardType: TextInputType.emailAddress,
+                    style: GoogleFonts.inter(fontSize: 14, color: textDark),
+                    decoration: InputDecoration(
+                      labelText: 'Email atau Nomor Handphone',
+                      labelStyle: GoogleFonts.inter(color: Colors.grey.shade400, fontSize: 13),
+                      prefixIcon: const Icon(Icons.person_outline, color: primaryBlue, size: 22),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
                 
-                TextField(
-                  controller: _passController,
-                  obscureText: !_isPasswordVisible,
-                  style: GoogleFonts.inter(fontSize: 14),
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    labelStyle: GoogleFonts.inter(color: Colors.grey.shade600, fontSize: 13),
-                    prefixIcon: const Icon(Icons.lock_outline, color: primaryColor),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _isPasswordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                        color: Colors.grey,
-                        size: 20,
+                // Form Password
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: _passController,
+                    obscureText: !_isPasswordVisible,
+                    style: GoogleFonts.inter(fontSize: 14, color: textDark),
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      labelStyle: GoogleFonts.inter(color: Colors.grey.shade400, fontSize: 13),
+                      prefixIcon: const Icon(Icons.lock_outline, color: primaryBlue, size: 22),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _isPasswordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                          color: Colors.grey.shade400,
+                          size: 20,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isPasswordVisible = !_isPasswordVisible;
+                          });
+                        },
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _isPasswordVisible = !_isPasswordVisible;
-                        });
-                      },
-                    ),
-                    filled: true,
-                    fillColor: bgCanvas,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: primaryColor, width: 1.5),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+                      ),
                     ),
                   ),
                 ),
@@ -191,7 +227,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       _notif("Membuka halaman pemulihan sandi...");
                     },
                     style: TextButton.styleFrom(
-                      foregroundColor: batikDark,
+                      foregroundColor: primaryBlue,
                       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -204,14 +240,28 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // TOMBOL LOGIN UTAMA
-                SizedBox(
+                // TOMBOL LOGIN UTAMA (Dengan Gradasi)
+                Container(
                   height: 52,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    gradient: const LinearGradient(
+                      colors: [primaryBlue, secondaryBlue],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: primaryBlue.withOpacity(0.25),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -225,7 +275,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           )
                         : Text(
                             'Masuk Aplikasi', 
-                            style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15)
+                            style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white, letterSpacing: 0.5)
                           ),
                   ),
                 ),
@@ -238,7 +288,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: Text(
-                        "Pelanggan Baru?",
+                        "Atau",
                         style: GoogleFonts.inter(color: Colors.grey.shade500, fontSize: 12),
                       ),
                     ),
@@ -247,12 +297,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // TOMBOL DAFTAR / MULAI JUAL
+                // TOMBOL DAFTAR / MULAI JUAL (Minimalis Outline)
                 OutlinedButton(
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: batikDark,
-                    side: BorderSide(color: Colors.grey.shade300),
+                    foregroundColor: primaryBlue,
+                    side: BorderSide(color: Colors.grey.shade300, width: 1.2),
                     minimumSize: const Size(double.infinity, 52),
+                    backgroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
