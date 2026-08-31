@@ -3,175 +3,189 @@ const express = require('express');
 const router = express.Router();
 
 // ============================================================
+// MIDDLEWARE
+// ============================================================
+
+const auth = require('../middleware/auth');
+const {
+  adminOnly,
+  sellerOnly,
+  buyerOnly,
+} = require('../middleware/role');
+
+// ============================================================
 // CONTROLLERS
 // ============================================================
 
-// Order
+const authController = require('../controllers/authController');
 const orderController = require('../controllers/orderController');
-
-// Payment
 const paymentController = require('../controllers/admin/paymentController');
-
-// Shipping
 const shippingController = require('../controllers/seller/shippingController');
-
-// Wallet
 const walletController = require('../controllers/seller/walletController');
-
-// Withdrawal
 const withdrawalController = require('../controllers/admin/withdrawalController');
 
+// ============================================================
+// AUTH
+// ============================================================
+
+router.post('/auth/login', authController.login);
 
 // ============================================================
-// ORDER
+// ORDER - BUYER
 // ============================================================
 
-// Membuat pesanan baru
 router.post(
   '/orders',
+  auth,
+  buyerOnly,
   orderController.buatPesanan
 );
 
-// Buyer melihat pesanan miliknya
 router.get(
   '/orders/buyer/:buyerId',
+  auth,
+  buyerOnly,
   orderController.ambilPesananBuyer
 );
 
-// Seller melihat pesanan masuk
-router.get(
-  '/orders/seller/:sellerId',
-  orderController.ambilPesananSeller
-);
-
-// Detail pesanan
 router.get(
   '/orders/:orderId',
+  auth,
   orderController.ambilDetailPesanan
 );
 
-// Buyer konfirmasi barang sudah diterima
 router.post(
   '/orders/received',
+  auth,
+  buyerOnly,
   orderController.konfirmasiBarangDiterima
 );
 
+// ============================================================
+// ORDER - SELLER
+// ============================================================
+
+router.get(
+  '/orders/seller/:sellerId',
+  auth,
+  sellerOnly,
+  orderController.ambilPesananSeller
+);
 
 // ============================================================
 // PAYMENT / REKBER
 // ============================================================
 
-// Buyer mengirim bukti transfer
 router.post(
   '/payments/proof',
+  auth,
+  buyerOnly,
   paymentController.kirimBuktiPembayaran
 );
 
-// Admin memverifikasi pembayaran
 router.post(
   '/admin/payments/verify',
+  auth,
+  adminOnly,
   paymentController.verifikasiPembayaran
 );
 
-// Admin menolak pembayaran
 router.post(
   '/admin/payments/reject',
+  auth,
+  adminOnly,
   paymentController.tolakPembayaran
 );
-
 
 // ============================================================
 // SHIPPING
 // ============================================================
 
-// Seller mengirim pesanan
-// Wajib:
-// - nama ekspedisi
-// - nomor resi
-// - biaya ekspedisi
 router.post(
   '/shipping',
+  auth,
+  sellerOnly,
   shippingController.kirimPesanan
 );
-
 
 // ============================================================
 // WALLET SELLER
 // ============================================================
 
-// Seller melihat wallet
 router.get(
   '/wallet/:sellerId',
+  auth,
+  sellerOnly,
   walletController.ambilWallet
 );
 
-// Seller memperbarui rekening
 router.put(
   '/wallet/account',
+  auth,
+  sellerOnly,
   walletController.updateRekening
 );
 
-
 // ============================================================
-// WITHDRAWAL / PENARIKAN DANA
+// WITHDRAWAL SELLER
 // ============================================================
 
-// Seller mengajukan penarikan
 router.post(
   '/withdrawals',
+  auth,
+  sellerOnly,
   withdrawalController.ajukanPenarikan
 );
 
-// Seller melihat riwayat penarikan
 router.get(
   '/withdrawals/seller/:sellerId',
+  auth,
+  sellerOnly,
   withdrawalController.riwayatPenarikanSeller
 );
 
-
 // ============================================================
-// ADMIN WITHDRAWAL
+// WITHDRAWAL ADMIN
 // ============================================================
 
-// Admin melihat antrean penarikan
 router.get(
   '/admin/withdrawals',
+  auth,
+  adminOnly,
   withdrawalController.ambilAntreanPenarikan
 );
 
-// Admin mulai memproses penarikan
 router.post(
   '/admin/withdrawals/process',
+  auth,
+  adminOnly,
   withdrawalController.mulaiProsesPenarikan
 );
 
-// Admin mengonfirmasi transfer manual sudah dilakukan
 router.post(
   '/admin/withdrawals/transfer',
+  auth,
+  adminOnly,
   withdrawalController.konfirmasiTransfer
 );
 
-// Admin menolak penarikan
 router.post(
   '/admin/withdrawals/reject',
+  auth,
+  adminOnly,
   withdrawalController.tolakPenarikan
 );
-
 
 // ============================================================
 // HEALTH CHECK
 // ============================================================
 
-router.get(
-  '/health',
-  (req, res) => {
-    res.status(200).json({
-      success: true,
-      message: 'Nusopa.Mart API aktif.',
-      timestamp: new Date(),
-    });
-  }
-);
-
+router.get('/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Nusopa.Mart API aktif.',
+    timestamp: new Date(),
+  });
+});
 
 module.exports = router;
