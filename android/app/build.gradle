@@ -1,17 +1,22 @@
 plugins {
-    id 'com.android.application'
-    id 'com.google.gms.google-services'
+    id "com.android.application"
+    id "dev.flutter.flutter-gradle-plugin"
+    id "com.google.gms.google-services"
 }
 
 android {
-    namespace 'Nusopa.mart'
+    namespace "Nusopa.mart"
     compileSdk 35
 
     defaultConfig {
-        applicationId 'Nusopa.mart'
+        applicationId "Nusopa.mart"
         minSdk 23
         targetSdk 35
         versionCode 1
-        versionName '1.0'
+        versionName "1.0"
     }
+}
+
+flutter {
+    source "../.."
 }
