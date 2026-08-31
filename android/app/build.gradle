@@ -4,11 +4,10 @@ plugins {
 }
 
 android {
-    namespace 'com.example.nusopa_mart'
+    namespace 'com.example.desapay'
     compileSdk 35
 
     defaultConfig {
-        // Must exactly match an Android client registered in Firebase.
         applicationId 'com.example.desapay'
         minSdk 23
         targetSdk 35
