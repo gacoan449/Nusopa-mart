@@ -7,23 +7,31 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: flutter-apk-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 jobs:
   build-apk:
     name: Build release APK
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Java 17
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
           cache: gradle
 
-      - name: Set up Flutter 3.44.7
+      - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.44.7'
@@ -33,65 +41,41 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Android SDK 36 and NDK 28.2.13676358
+      - name: Validate Flutter source
         shell: bash
-        run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358"
-
-      - name: Recreate Android project
-        shell: bash
-        run: |
-          rm -rf android
-          flutter create --platforms=android .
-
-      - name: Configure Android SDK, NDK and Firebase
-        shell: bash
-        env:
-          FIREBASE_SECRET_JSON: ${{ secrets.FIREBASE_SECRET_JSON }}
         run: |
           set -euo pipefail
-
-          test -n "$FIREBASE_SECRET_JSON" || {
-            echo "ERROR: GitHub Secret FIREBASE_SECRET_JSON belum diatur."
-            exit 1
-          }
-
-          mkdir -p android/app
-          printf '%s' "$FIREBASE_SECRET_JSON" > android/app/google-services.json
-
-          # Flutter 3.44.7 normally generates Kotlin DSL (.gradle.kts).
-          # Keep a Groovy fallback for projects that generate .gradle instead.
-          if [[ -f android/app/build.gradle.kts ]]; then
-            sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
-            sed -i 's/targetSdk = flutter.targetSdkVersion/targetSdk = 36/' android/app/build.gradle.kts
-            sed -i 's/ndkVersion = flutter.ndkVersion/ndkVersion = "28.2.13676358"/' android/app/build.gradle.kts
-            sed -i '/id("dev.flutter.flutter-gradle-plugin")/a\    id("com.google.gms.google-services")' android/app/build.gradle.kts
-            sed -i '/id("org.jetbrains.kotlin.android")/a\        id("com.google.gms.google-services") version "4.4.4" apply false' android/settings.gradle.kts
-          elif [[ -f android/app/build.gradle ]]; then
-            sed -i 's/compileSdk flutter.compileSdkVersion/compileSdk 36/' android/app/build.gradle
-            sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 36/' android/app/build.gradle
-            sed -i 's/targetSdk flutter.targetSdkVersion/targetSdk 36/' android/app/build.gradle
-            sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 36/' android/app/build.gradle
-            sed -i 's/ndkVersion flutter.ndkVersion/ndkVersion "28.2.13676358"/' android/app/build.gradle
-            sed -i '/id "dev.flutter.flutter-gradle-plugin"/a\        id "com.google.gms.google-services"' android/app/build.gradle
-            sed -i '/id "org.jetbrains.kotlin.android"/a\        id "com.google.gms.google-services" version "4.4.4" apply false' android/settings.gradle
-          else
-            echo "ERROR: android/app/build.gradle(.kts) tidak ditemukan."
-            exit 1
-          fi
-
-          echo "--- Android Gradle files ---"
-          ls -l android/app/build.gradle*
-          echo "--- Firebase config ---"
-          test -s android/app/google-services.json
-          echo "google-services.json berhasil dibuat dari GitHub Secret."
+          test -f pubspec.yaml
+          test -f lib/main.dart
+          echo "Flutter source validated."
 
       - name: Get Flutter dependencies
         run: flutter pub get
 
+      - name: Analyze source
+        run: flutter analyze
+
+      # Repository tetap zero-android-folder.
+      # Platform Android dibuat hanya di runner sementara dan tidak di-commit.
+      - name: Generate Android platform in cloud
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf android
+          flutter create --platforms=android --project-name nusopa_mart .
+          test -f android/app/build.gradle.kts -o -f android/app/build.gradle
+
       - name: Build release APK
-        run: flutter build apk --release
+        run: flutter build apk --release --no-tree-shake-icons
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="build/app/outputs/flutter-apk/app-release.apk"
+          test -s "$APK"
+          ls -lh "$APK"
+          sha256sum "$APK"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
