@@ -1,5 +1,5 @@
 # Nusopa-mart / Firebase R8 rules
-# Firebase libraries normally provide consumer rules themselves.
-# Keep these compatibility rules while release minification is disabled.
--keep public class com.google.firebase.** { *; }
--keep public class com.google.android.gms.** { *; }
+# Keep Firebase Auth and Google Play Services from being removed or renamed by R8.
+-keep class com.google.firebase.** { *; }
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.firebase.auth.**
