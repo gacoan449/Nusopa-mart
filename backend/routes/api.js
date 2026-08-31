@@ -1,65 +1,177 @@
 const express = require('express');
+
 const router = express.Router();
 
-// Memanggil semua controller yang sudah dibuat sebelumnya
-const authController = require('../controllers/authController');
-const adminController = require('../controllers/admin/adminController');
+// ============================================================
+// CONTROLLERS
+// ============================================================
+
+// Order
+const orderController = require('../controllers/orderController');
+
+// Payment
+const paymentController = require('../controllers/admin/paymentController');
+
+// Shipping
 const shippingController = require('../controllers/seller/shippingController');
-const chatController = require('../controllers/admin/chatController');
 
-/**
- * ==========================================
- * 0. RUTING AUTENTIKASI (LOGIN & REGISTER)
- * ==========================================
- */
+// Wallet
+const walletController = require('../controllers/seller/walletController');
 
-// Endpoint untuk mendaftarkan akun baru pembeli / seller
-// Method: POST -> http://localhost:5000/api/auth/register
-router.post('/auth/register', authController.register);
-
-// Endpoint untuk login akun nyata yang divalidasi ke database
-// Method: POST -> http://localhost:5000/api/auth/login
-router.post('/auth/login', authController.login);
+// Withdrawal
+const withdrawalController = require('../controllers/admin/withdrawalController');
 
 
-/**
- * ==========================================
- * 1. RUTING KHUSUS SELLER (PENJUAL)
- * ==========================================
- */
+// ============================================================
+// ORDER
+// ============================================================
 
-// Endpoint untuk menyelesaikan pesanan saat kurir tiba (COD/Transfer)
-// Sekaligus memicu pemotongan otomatis 1 tiket admin milik seller.
-// Method: POST -> http://localhost:5000/api/seller/order/complete
-router.post('/seller/order/complete', shippingController.selesaikanPesananDanPotongTiket);
+// Membuat pesanan baru
+router.post(
+  '/orders',
+  orderController.buatPesanan
+);
 
+// Buyer melihat pesanan miliknya
+router.get(
+  '/orders/buyer/:buyerId',
+  orderController.ambilPesananBuyer
+);
 
-/**
- * ==========================================
- * 2. RUTING KHUSUS ADMIN (PENGELOLA / ANDA)
- * ==========================================
- */
+// Seller melihat pesanan masuk
+router.get(
+  '/orders/seller/:sellerId',
+  orderController.ambilPesananSeller
+);
 
-// Endpoint untuk Admin menambahkan tiket secara manual setelah menerima 
-// bukti transfer atau scan QRIS Rp10.000 (10 tiket) dari seller via chat.
-// Method: POST -> http://localhost:5000/api/admin/ticket/topup
-router.post('/admin/ticket/topup', adminController.tambahTiketSellerManual);
+// Detail pesanan
+router.get(
+  '/orders/:orderId',
+  orderController.ambilDetailPesanan
+);
 
-
-/**
- * ==========================================
- * 3. RUTING KHUSUS FITUR CHAT ADMIN & SELLER
- * ==========================================
- */
-
-// Endpoint untuk mengirim pesan chat (bisa teks biasa atau link gambar QRIS manual)
-// Method: POST -> http://localhost:5000/api/chat/send
-router.post('/chat/send', chatController.kirimPesanChat);
-
-// Endpoint untuk mengambil riwayat percakapan dua arah antara Admin dan Seller
-// Method: GET -> http://localhost:5000/api/chat/history/:pengirimId/:penerimaId
-router.get('/chat/history/:pengirimId/:penerimaId', chatController.ambilRiwayatChat);
+// Buyer konfirmasi barang sudah diterima
+router.post(
+  '/orders/received',
+  orderController.konfirmasiBarangDiterima
+);
 
 
-// Mengekspor rute agar dapat dibaca oleh file server utama (server.js)
+// ============================================================
+// PAYMENT / REKBER
+// ============================================================
+
+// Buyer mengirim bukti transfer
+router.post(
+  '/payments/proof',
+  paymentController.kirimBuktiPembayaran
+);
+
+// Admin memverifikasi pembayaran
+router.post(
+  '/admin/payments/verify',
+  paymentController.verifikasiPembayaran
+);
+
+// Admin menolak pembayaran
+router.post(
+  '/admin/payments/reject',
+  paymentController.tolakPembayaran
+);
+
+
+// ============================================================
+// SHIPPING
+// ============================================================
+
+// Seller mengirim pesanan
+// Wajib:
+// - nama ekspedisi
+// - nomor resi
+// - biaya ekspedisi
+router.post(
+  '/shipping',
+  shippingController.kirimPesanan
+);
+
+
+// ============================================================
+// WALLET SELLER
+// ============================================================
+
+// Seller melihat wallet
+router.get(
+  '/wallet/:sellerId',
+  walletController.ambilWallet
+);
+
+// Seller memperbarui rekening
+router.put(
+  '/wallet/account',
+  walletController.updateRekening
+);
+
+
+// ============================================================
+// WITHDRAWAL / PENARIKAN DANA
+// ============================================================
+
+// Seller mengajukan penarikan
+router.post(
+  '/withdrawals',
+  withdrawalController.ajukanPenarikan
+);
+
+// Seller melihat riwayat penarikan
+router.get(
+  '/withdrawals/seller/:sellerId',
+  withdrawalController.riwayatPenarikanSeller
+);
+
+
+// ============================================================
+// ADMIN WITHDRAWAL
+// ============================================================
+
+// Admin melihat antrean penarikan
+router.get(
+  '/admin/withdrawals',
+  withdrawalController.ambilAntreanPenarikan
+);
+
+// Admin mulai memproses penarikan
+router.post(
+  '/admin/withdrawals/process',
+  withdrawalController.mulaiProsesPenarikan
+);
+
+// Admin mengonfirmasi transfer manual sudah dilakukan
+router.post(
+  '/admin/withdrawals/transfer',
+  withdrawalController.konfirmasiTransfer
+);
+
+// Admin menolak penarikan
+router.post(
+  '/admin/withdrawals/reject',
+  withdrawalController.tolakPenarikan
+);
+
+
+// ============================================================
+// HEALTH CHECK
+// ============================================================
+
+router.get(
+  '/health',
+  (req, res) => {
+    res.status(200).json({
+      success: true,
+      message: 'Nusopa.Mart API aktif.',
+      timestamp: new Date(),
+    });
+  }
+);
+
+
 module.exports = router;
