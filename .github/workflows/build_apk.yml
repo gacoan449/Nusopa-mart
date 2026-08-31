@@ -28,28 +28,48 @@ jobs:
           channel: stable
           cache: true
 
-      # IMPORTANT: Keep the repository Android project intact.
-      # Do NOT run `flutter create` here because it would regenerate the
-      # applicationId and break the Firebase Google Services match.
+      # Keep the checked-in Android project intact. Never regenerate it with
+      # `flutter create` because that can overwrite Firebase/package settings.
+      - name: Verify modern Flutter Android project
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f android/settings.gradle
+          test -f android/build.gradle
+          test -f android/app/build.gradle
+          test -f android/app/src/main/AndroidManifest.xml
+          test -f android/app/src/main/kotlin/Nusopa/mart/MainActivity.kt
+          test -f android/app/google-services.json
+
+          grep -q 'dev.flutter.flutter-plugin-loader' android/settings.gradle
+          grep -q 'includeBuild("${flutterSdkPath}/packages/flutter_tools/gradle")' android/settings.gradle
+          grep -q 'dev.flutter.flutter-gradle-plugin' android/app/build.gradle
+          grep -q 'flutter {' android/app/build.gradle
+          grep -q 'source "../.."' android/app/build.gradle
+          grep -q 'io.flutter.embedding.android.FlutterActivity' android/app/src/main/kotlin/Nusopa/mart/MainActivity.kt
+          grep -q 'android:name=".MainActivity"' android/app/src/main/AndroidManifest.xml
+          grep -q 'android:name="flutterEmbedding"' android/app/src/main/AndroidManifest.xml
+          grep -q 'android:value="2"' android/app/src/main/AndroidManifest.xml
+
+          echo 'Modern Flutter Android Embedding V2 / Gradle plugin configuration verified.'
+
       - name: Verify Firebase Android configuration
         shell: bash
         run: |
           set -euo pipefail
-          test -f android/app/google-services.json
           grep -q '"package_name": "Nusopa.mart"' android/app/google-services.json
-          grep -q "applicationId 'Nusopa.mart'" android/app/build.gradle
-          grep -q "namespace 'Nusopa.mart'" android/app/build.gradle
+          grep -q 'applicationId "Nusopa.mart"' android/app/build.gradle
+          grep -q 'namespace "Nusopa.mart"' android/app/build.gradle
           echo 'Firebase/Android package configuration is consistent: Nusopa.mart'
 
       - name: Verify Android Gradle configuration
         shell: bash
         run: |
           set -euo pipefail
-          test -f android/build.gradle
-          test -f android/app/build.gradle
-          grep -q "com.android.application.*8.6.1" android/build.gradle
-          grep -q "com.google.gms.google-services.*4.4.2" android/build.gradle
-          grep -q "id 'com.google.gms.google-services'" android/app/build.gradle
+          grep -q 'com.android.application.*8.6.1' android/build.gradle
+          grep -q 'com.google.gms.google-services.*4.4.2' android/build.gradle
+          grep -q 'id "com.google.gms.google-services"' android/app/build.gradle
           echo 'Android Gradle configuration verified.'
 
       - name: Install dependencies
