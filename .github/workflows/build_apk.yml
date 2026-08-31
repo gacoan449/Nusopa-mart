@@ -28,46 +28,38 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Recreate Android host with current Flutter template
+      # IMPORTANT: Do not delete/recreate android/. The previous workflow did
+      # this and flutter create generated applicationId com.example.nusopa_mart,
+      # which did not match the Firebase Android client com.example.desapay.
+      - name: Verify Firebase Android configuration
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/nusopa
-          if [ -f android/app/google-services.json ]; then cp android/app/google-services.json /tmp/nusopa/google-services.json; fi
-          rm -rf android
-          flutter create --platforms=android --org com.example --project-name nusopa_mart .
-          if [ -f /tmp/nusopa/google-services.json ]; then cp /tmp/nusopa/google-services.json android/app/google-services.json; fi
-          test -f android/settings.gradle.kts || test -f android/settings.gradle
-          test -f android/app/src/main/kotlin/com/example/nusopa_mart/MainActivity.kt
+          test -f android/app/google-services.json
+          grep -q '"package_name": "com.example.desapay"' android/app/google-services.json
+          grep -q "applicationId 'com.example.desapay'" android/app/build.gradle
+          grep -q "namespace 'com.example.desapay'" android/app/build.gradle
+          echo 'Firebase/Android package configuration is consistent.'
 
-      - name: Enable Google Services in generated Gradle project
+      - name: Verify Android Gradle configuration
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          settings = Path('android/settings.gradle.kts')
-          app = Path('android/app/build.gradle.kts')
-          if not settings.exists() or not app.exists(): raise SystemExit('Modern Kotlin DSL Gradle files were not generated.')
-          s = settings.read_text()
-          if 'com.google.gms.google-services' not in s:
-              s = s.replace('plugins {', 'plugins {\n    id("com.google.gms.google-services") version "4.4.2" apply false', 1)
-              settings.write_text(s)
-          s = app.read_text()
-          if 'com.google.gms.google-services' not in s:
-              s = s.replace('plugins {', 'plugins {\n    id("com.google.gms.google-services")', 1)
-              app.write_text(s)
-          PY
+          test -f android/build.gradle
+          test -f android/app/build.gradle
+          grep -q "com.android.application.*8.6.1" android/build.gradle
+          grep -q "com.google.gms.google-services.*4.4.2" android/build.gradle
+          grep -q "id 'com.google.gms.google-services'" android/app/build.gradle
+          echo 'Android Gradle configuration verified.'
 
       - name: Verify Android v2 embedding only
         shell: bash
         run: |
           set -euo pipefail
-          if grep -RInE 'io\.flutter\.app\.|FlutterActivityDelegate|FlutterActivityEvents|FlutterApplication|FlutterFragmentActivity|FlutterPlayStoreSplitApplication|FlutterPluginRegistry|io\.flutter\.embedding\.engine\.plugins\.shim|io\.flutter\.view\.' android --include='*.java' --include='*.kt' --include='*.xml'; then
+          if grep -RInE 'io\.flutter\.app\.|FlutterActivityDelegate|FlutterActivityEvents|FlutterApplication|FlutterPlayStoreSplitApplication|FlutterPluginRegistry|io\.flutter\.embedding\.engine\.plugins\.shim|io\.flutter\.view\.' android --include='*.java' --include='*.kt' --include='*.xml'; then
             echo 'Forbidden Android v1 embedding API reference detected.'
             exit 1
           fi
-          grep -RIn 'io\.flutter\.embedding\.android\.FlutterActivity' android --include='*.kt' --include='*.java' || true
           echo 'Android v2 embedding verification passed.'
 
       - name: Install dependencies
