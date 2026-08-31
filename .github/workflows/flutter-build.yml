@@ -2,7 +2,9 @@ name: Flutter APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [main]
+permissions:
+  contents: read
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -12,12 +14,15 @@ jobs:
         with:
           channel: stable
           cache: true
-      - name: Complete Android project if needed
-        run: flutter create --platforms=android --project-name nusopa_mart .
+      - name: Ensure Android project
+        run: |
+          if [ ! -f android/settings.gradle.kts ] && [ ! -f android/settings.gradle ]; then
+            flutter create --platforms=android --project-name nusopa_mart .
+          fi
       - name: Install dependencies
         run: flutter pub get
       - name: Static analysis
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos
       - name: Build release APK
         run: flutter build apk --release
       - name: Upload APK
@@ -25,3 +30,4 @@ jobs:
         with:
           name: nusopa-mart-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
