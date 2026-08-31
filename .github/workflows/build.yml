@@ -55,15 +55,40 @@ jobs:
       - name: Analyze source
         run: flutter analyze
 
-      # Repository tetap zero-android-folder.
-      # Platform Android dibuat hanya di runner sementara dan tidak di-commit.
+      # Zero-Android-Folder Architecture:
+      # android/ hanya dibuat di runner sementara dan tidak pernah di-commit.
       - name: Generate Android platform in cloud
         shell: bash
         run: |
           set -euo pipefail
+
           rm -rf android
           flutter create --platforms=android --project-name nusopa_mart .
-          test -f android/app/build.gradle.kts -o -f android/app/build.gradle
+
+          test -f android/settings.gradle -o -f android/settings.gradle.kts
+
+      # Flutter/Gradle membutuhkan flutter.sdk saat settings dievaluasi.
+      # File ini hanya ada di workspace runner dan hilang setelah job selesai.
+      - name: Configure ephemeral Android build environment
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          FLUTTER_BIN="$(command -v flutter)"
+          FLUTTER_ROOT="$(cd "$(dirname "$FLUTTER_BIN")/.." && pwd)"
+
+          : "${ANDROID_HOME:?ANDROID_HOME is not set}"
+
+          cat > android/local.properties <<EOF
+          flutter.sdk=$FLUTTER_ROOT
+          sdk.dir=$ANDROID_HOME
+          EOF
+
+          test -s android/local.properties
+          grep -q '^flutter.sdk=' android/local.properties
+          grep -q '^sdk.dir=' android/local.properties
+
+          echo "Ephemeral Android build environment configured."
 
       - name: Build release APK
         run: flutter build apk --release --no-tree-shake-icons
