@@ -31,6 +31,16 @@ android {
     kotlinOptions {
         jvmTarget = '17'
     }
+
+    // Release build dibuat eksplisit non-minified untuk mengisolasi
+    // kegagalan R8/ProGuard tanpa mengubah konfigurasi debug.
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
 }
 
 flutter {
