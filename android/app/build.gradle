@@ -1,0 +1,12 @@
+plugins {
+    id 'com.android.application'
+    id 'com.google.gms.google-services'
+}
+
+android { namespace 'com.example.nusopa_mart'; compileSdk 35
+    defaultConfig { applicationId 'com.example.nusopa_mart'; minSdk 23; targetSdk 35; versionCode 1; versionName '1.0' }
+}
+
+// This file is a Firebase-ready native shell. A standard Flutter-generated
+// android project should be regenerated with `flutter create .` before release
+// so the Flutter Gradle plugin/wrapper matches the installed Flutter SDK.
