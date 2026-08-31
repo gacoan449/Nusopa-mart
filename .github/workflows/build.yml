@@ -16,19 +16,23 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
           cache: gradle
+
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.44.7'
           channel: stable
           cache: true
+
       - uses: android-actions/setup-android@v3
 
       - name: Validate Flutter source
+        shell: bash
         run: |
           set -euo pipefail
           test -f pubspec.yaml
@@ -40,49 +44,37 @@ jobs:
       - name: Analyze source
         run: flutter analyze
 
-      - name: Generate Android platform in cloud
+      # Bootstrap Android dan local.properties dalam satu step sebelum Gradle.
+      - name: Generate Android platform and local.properties
         shell: bash
         run: |
           set -euo pipefail
           rm -rf android
           flutter create --platforms=android --project-name nusopa_mart .
-          test -f android/settings.gradle -o -f android/settings.gradle.kts
 
-      - name: Create and verify ephemeral local.properties
-        shell: bash
-        run: |
-          set -euo pipefail
           FLUTTER_BIN="$(readlink -f "$(command -v flutter)")"
           FLUTTER_ROOT="$(cd "$(dirname "$FLUTTER_BIN")/.." && pwd -P)"
-          test -d "$FLUTTER_ROOT/packages/flutter_tools"
-
           SDK_DIR="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+
+          test -d "$FLUTTER_ROOT/packages/flutter_tools"
           test -n "$SDK_DIR"
           test -d "$SDK_DIR"
 
           printf 'flutter.sdk=%s\nsdk.dir=%s\n' "$FLUTTER_ROOT" "$SDK_DIR" > android/local.properties
 
+          echo "=== REQUIRED FILES BEFORE BUILD ==="
+          test -f android/settings.gradle -o -f android/settings.gradle.kts
           test -s android/local.properties
-          test -f android/local.properties
-          grep -qx "flutter.sdk=$FLUTTER_ROOT" android/local.properties
-          grep -qx "sdk.dir=$SDK_DIR" android/local.properties
-
-          echo "=== local.properties ==="
+          ls -l android/local.properties
           cat android/local.properties
 
-      - name: Diagnose generated Android configuration
+      # Tidak ada clean atau penghapusan android setelah file dibuat.
+      - name: Build release APK
         shell: bash
         run: |
           set -euo pipefail
-          ls -la android
-          test -f android/local.properties
-          ls -l android/local.properties
-          if [ -f android/settings.gradle ]; then
-            sed -n '1,40p' android/settings.gradle
-          fi
-
-      - name: Build release APK
-        run: flutter build apk --release --no-tree-shake-icons
+          test -s android/local.properties
+          flutter build apk --release --no-tree-shake-icons
 
       - name: Verify APK
         shell: bash
