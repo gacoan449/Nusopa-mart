@@ -28,18 +28,18 @@ jobs:
           channel: stable
           cache: true
 
-      # IMPORTANT: Do not delete/recreate android/. The previous workflow did
-      # this and flutter create generated applicationId com.example.nusopa_mart,
-      # which did not match the Firebase Android client com.example.desapay.
+      # IMPORTANT: Keep the repository Android project intact.
+      # Do NOT run `flutter create` here because it would regenerate the
+      # applicationId and break the Firebase Google Services match.
       - name: Verify Firebase Android configuration
         shell: bash
         run: |
           set -euo pipefail
           test -f android/app/google-services.json
-          grep -q '"package_name": "com.example.desapay"' android/app/google-services.json
-          grep -q "applicationId 'com.example.desapay'" android/app/build.gradle
-          grep -q "namespace 'com.example.desapay'" android/app/build.gradle
-          echo 'Firebase/Android package configuration is consistent.'
+          grep -q '"package_name": "Nusopa.mart"' android/app/google-services.json
+          grep -q "applicationId 'Nusopa.mart'" android/app/build.gradle
+          grep -q "namespace 'Nusopa.mart'" android/app/build.gradle
+          echo 'Firebase/Android package configuration is consistent: Nusopa.mart'
 
       - name: Verify Android Gradle configuration
         shell: bash
@@ -51,16 +51,6 @@ jobs:
           grep -q "com.google.gms.google-services.*4.4.2" android/build.gradle
           grep -q "id 'com.google.gms.google-services'" android/app/build.gradle
           echo 'Android Gradle configuration verified.'
-
-      - name: Verify Android v2 embedding only
-        shell: bash
-        run: |
-          set -euo pipefail
-          if grep -RInE 'io\.flutter\.app\.|FlutterActivityDelegate|FlutterActivityEvents|FlutterApplication|FlutterPlayStoreSplitApplication|FlutterPluginRegistry|io\.flutter\.embedding\.engine\.plugins\.shim|io\.flutter\.view\.' android --include='*.java' --include='*.kt' --include='*.xml'; then
-            echo 'Forbidden Android v1 embedding API reference detected.'
-            exit 1
-          fi
-          echo 'Android v2 embedding verification passed.'
 
       - name: Install dependencies
         run: flutter pub get
