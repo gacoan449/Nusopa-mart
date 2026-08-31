@@ -106,6 +106,17 @@ jobs:
         working-directory: android
         run: ./gradlew --version
 
+      - name: Verify Android framework resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_DIR="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          PLATFORM="$SDK_DIR/platforms/android-${ANDROID_API_LEVEL}"
+          test -d "$PLATFORM"
+          test -s "$PLATFORM/android.jar"
+          echo "Using Android platform: $PLATFORM"
+          ls -lh "$PLATFORM/android.jar"
+
       - name: Analyze
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
