@@ -6,12 +6,16 @@ plugins {
 
 android {
     namespace "Nusopa.mart"
-    compileSdk 35
+    // Diperbarui ke 36 untuk mendukung plugin terbaru Anda
+    compileSdk 36
+    // Menambahkan kecocokan NDK yang diminta oleh plugin jni
+    ndkVersion = "28.2.13676358"
 
     defaultConfig {
         applicationId "Nusopa.mart"
         minSdk 23
-        targetSdk 35
+        // Diperbarui ke 36 agar selaras dengan versi SDK kompilasi
+        targetSdk 36
         versionCode 1
         versionName "1.0"
     }
