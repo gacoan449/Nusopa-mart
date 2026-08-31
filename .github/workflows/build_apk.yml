@@ -1,48 +1,50 @@
 name: Nusopa.Mart Auto Build APK
-
 on:
   push:
-    branches:
-      - main
-      - master
-
+    branches: [main, master]
+  workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   build-android:
-    name: Merakit APK Nusopa Mart di Cloud
     runs-on: ubuntu-latest
-
     steps:
-      - name: Ambil Source Code dari Repo
-        uses: actions/checkout@v4
-
-      - name: Konfigurasi Java JDK 17
-        uses: actions/setup-java@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
-
-      - name: Konfigurasi Mesin SDK Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
-
-      - name: Mengunduh Dependency Library
-        run: flutter pub get
-
-      # Membuat folder Android & build.gradle otomatis di Root Utama Cloud
-      - name: Generate Folder Android Otomatis
-        run: flutter create . --platforms=android
-
-      - name: Membersihkan Cache & Sinkronisasi
+          channel: stable
+          cache: true
+      - name: Recreate Android project with current Flutter embedding
+        shell: bash
         run: |
-          flutter clean
-          flutter pub get
-
-      - name: Proses Perakitan APK Rilis Final
-        run: flutter build apk --release
-
-      - name: Unggah Hasil APK ke Dashboard GitHub
-        uses: actions/upload-artifact@v4
+          set -e
+          mkdir -p /tmp/nusopa
+          if [ -f android/app/google-services.json ]; then cp android/app/google-services.json /tmp/nusopa/google-services.json; fi
+          rm -rf android
+          flutter create --platforms=android --project-name nusopa_mart .
+          if [ -f /tmp/nusopa/google-services.json ]; then cp /tmp/nusopa/google-services.json android/app/google-services.json; fi
+      - name: Enable Google Services
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('android/settings.gradle'); s=p.read_text()
+          if 'com.google.gms.google-services' not in s:
+              s=s.replace('plugins {', "plugins {\n    id 'com.google.gms.google-services' version '4.4.2' apply false", 1); p.write_text(s)
+          p=Path('android/app/build.gradle'); s=p.read_text()
+          if 'com.google.gms.google-services' not in s:
+              s=s.replace('plugins {', "plugins {\n    id 'com.google.gms.google-services'", 1); p.write_text(s)
+          PY
+      - run: flutter pub get
+      - run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - run: flutter test
+      - run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
         with:
           name: Nusopa-Mart-Release-APK
           path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
