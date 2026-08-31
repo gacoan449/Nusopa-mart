@@ -1,11 +1,20 @@
 pluginManagement {
-    def flutterSdkPath = {
+    // GitHub Actions (dan beberapa CI lain) menyediakan FLUTTER_ROOT.
+    // Gunakan environment variable terlebih dahulu agar build tidak bergantung
+    // pada local.properties yang hanya ada di mesin developer.
+    def flutterSdkPath = System.getenv("FLUTTER_ROOT")
+
+    if (flutterSdkPath == null || flutterSdkPath.trim().isEmpty()) {
         def properties = new Properties()
-        file("local.properties").withInputStream { properties.load(it) }
-        def flutterSdkPath = properties.getProperty("flutter.sdk")
-        assert flutterSdkPath != null, "flutter.sdk not set in local.properties"
-        return flutterSdkPath
-    }()
+        def localProperties = file("local.properties")
+
+        if (localProperties.exists()) {
+            localProperties.withInputStream { properties.load(it) }
+            flutterSdkPath = properties.getProperty("flutter.sdk")
+        }
+    }
+
+    assert flutterSdkPath != null && !flutterSdkPath.trim().isEmpty(), "Flutter SDK path tidak ditemukan. Set FLUTTER_ROOT atau buat android/local.properties dengan flutter.sdk."
 
     includeBuild("${flutterSdkPath}/packages/flutter_tools/gradle")
 
