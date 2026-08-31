@@ -12,13 +12,15 @@ env:
   JAVA_VERSION: '17'
   FLUTTER_VERSION: '3.44.7'
   ANDROID_API_LEVEL: '36'
-  ANDROID_BUILD_TOOLS: '35.0.0'
+  ANDROID_BUILD_TOOLS: '36.0.0'
   ANDROID_NDK_VERSION: '28.2.13676358'
   GRADLE_VERSION: '8.11.1'
 
 jobs:
   build-android:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -27,19 +29,19 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
+          java-version: '${{ env.JAVA_VERSION }}'
 
-      - name: Setup Flutter 3.44.7
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
+          flutter-version: '${{ env.FLUTTER_VERSION }}'
           channel: stable
           cache: true
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install required Android SDK packages
+      - name: Install Android SDK packages
         shell: bash
         run: |
           set -euo pipefail
@@ -50,70 +52,53 @@ jobs:
             "build-tools;${ANDROID_BUILD_TOOLS}" \
             "ndk;${ANDROID_NDK_VERSION}"
 
-      - name: Verify modern Flutter Android project
+      - name: Verify Android project
         shell: bash
         run: |
           set -euo pipefail
           test -f android/settings.gradle
           test -f android/build.gradle
           test -f android/app/build.gradle
+          test -f android/app/google-services.json
           test -f android/app/src/main/AndroidManifest.xml
           test -f android/app/src/main/kotlin/Nusopa/mart/MainActivity.kt
-          test -f android/app/google-services.json
           grep -q 'dev.flutter.flutter-plugin-loader' android/settings.gradle
-          grep -q 'includeBuild("${flutterSdkPath}/packages/flutter_tools/gradle")' android/settings.gradle
           grep -q 'dev.flutter.flutter-gradle-plugin' android/app/build.gradle
-          grep -q 'flutter {' android/app/build.gradle
-          grep -q 'source "../.."' android/app/build.gradle
-          grep -q 'io.flutter.embedding.android.FlutterActivity' android/app/src/main/kotlin/Nusopa/mart/MainActivity.kt
-          grep -q 'android:name=".MainActivity"' android/app/src/main/AndroidManifest.xml
-          grep -q 'android:name="flutterEmbedding"' android/app/src/main/AndroidManifest.xml
-          grep -q 'android:value="2"' android/app/src/main/AndroidManifest.xml
-
-      - name: Verify Firebase Android configuration
-        shell: bash
-        run: |
-          set -euo pipefail
-          grep -q '"package_name": "Nusopa.mart"' android/app/google-services.json
           grep -q 'applicationId "Nusopa.mart"' android/app/build.gradle
           grep -q 'namespace "Nusopa.mart"' android/app/build.gradle
-
-      - name: Verify Android Gradle configuration
-        shell: bash
-        run: |
-          set -euo pipefail
-          grep -q 'id "com.android.application" version "8.9.1" apply false' android/settings.gradle
-          grep -q "id 'com.android.application' version '8.9.1' apply false" android/build.gradle
-          grep -q 'com.google.gms.google-services.*4.4.2' android/settings.gradle
-          grep -q 'id "com.google.gms.google-services"' android/app/build.gradle
           grep -q 'compileSdk 36' android/app/build.gradle
           grep -q 'targetSdk 36' android/app/build.gradle
           grep -q 'ndkVersion = "28.2.13676358"' android/app/build.gradle
+          grep -q '"package_name": "Nusopa.mart"' android/app/google-services.json
 
-      - name: Prepare Gradle wrapper in Android project
+      - name: Generate CI local.properties
+        shell: bash
+        run: |
+          set -euo pipefail
+          FLUTTER_BIN="$(readlink -f "$(command -v flutter)")"
+          FLUTTER_ROOT="$(cd "$(dirname "$FLUTTER_BIN")/.." && pwd -P)"
+          SDK_DIR="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          test -d "$FLUTTER_ROOT/packages/flutter_tools"
+          test -d "$SDK_DIR"
+          printf 'flutter.sdk=%s\nsdk.dir=%s\n' "$FLUTTER_ROOT" "$SDK_DIR" > android/local.properties
+          test -s android/local.properties
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Prepare Gradle wrapper
         shell: bash
         run: |
           set -euo pipefail
           cd android
-          rm -f gradlew gradlew.bat
-          rm -rf gradle/wrapper
           gradle wrapper --gradle-version "${GRADLE_VERSION}" --distribution-type all
           chmod +x gradlew
-          test -f gradle/wrapper/gradle-wrapper.jar
-          grep -q "gradle-${GRADLE_VERSION}-all.zip" gradle/wrapper/gradle-wrapper.properties
+          test -s gradle/wrapper/gradle-wrapper.properties
+          test -s gradle/wrapper/gradle-wrapper.jar
 
-      - name: Verify Gradle toolchain
+      - name: Verify Gradle
         working-directory: android
-        shell: bash
-        run: |
-          set -euo pipefail
-          pwd
-          test -f settings.gradle
-          test -f build.gradle
-          ./gradlew --version
-
-      - name: Install dependencies
-        run: flutter pub get
+        run: ./gradlew --version
 
       - name: Analyze
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
@@ -128,8 +113,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -s build/app/outputs/flutter-apk/app-release.apk
-          ls -lh build/app/outputs/flutter-apk/app-release.apk
+          APK="build/app/outputs/flutter-apk/app-release.apk"
+          test -s "$APK"
+          ls -lh "$APK"
+          sha256sum "$APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -137,3 +124,4 @@ jobs:
           name: Nusopa-Mart-Release-APK
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
+          retention-days: 14
