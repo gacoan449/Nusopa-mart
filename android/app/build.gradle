@@ -19,6 +19,18 @@ android {
         versionCode 1
         versionName "1.0"
     }
+
+    // Samakan target JVM Java dan Kotlin ke Java 17.
+    // Ini memperbaiki error karena Java sebelumnya ditargetkan ke 1.8
+    // sementara Kotlin ditargetkan ke JVM 17.
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
 }
 
 flutter {
