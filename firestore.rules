@@ -1,0 +1,12 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn(){ return request.auth != null; }
+    function isAdmin(){ return signedIn() && request.auth.token.admin == true; }
+    match /users/{uid} { allow read, create: if signedIn() && request.auth.uid == uid; allow update: if signedIn() && request.auth.uid == uid && !('role' in request.resource.data.diff(resource.data).changedKeys()); }
+    match /orders/{id} { allow create: if signedIn() && request.resource.data.buyerId == request.auth.uid; allow read: if signedIn() && (resource.data.buyerId == request.auth.uid || resource.data.sellerId == request.auth.uid || isAdmin()); allow update: if isAdmin(); }
+    match /payments/{id} { allow create: if signedIn() && request.resource.data.buyerId == request.auth.uid; allow read: if signedIn() && (resource.data.buyerId == request.auth.uid || isAdmin()); allow update: if isAdmin(); }
+    match /wallets/{id} { allow read: if signedIn() && (resource.data.sellerId == request.auth.uid || isAdmin()); allow write: if false; }
+    match /withdrawals/{id} { allow create: if signedIn() && request.resource.data.sellerId == request.auth.uid; allow read: if signedIn() && (resource.data.sellerId == request.auth.uid || isAdmin()); allow update: if isAdmin(); }
+  }
+}
