@@ -1,139 +1,47 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../services/api_service.dart';
-import 'home_screen.dart';
-import 'seller_dashboard.dart';
-import 'admin_core.dart';
+import 'auth_gate.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
-  @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  @override State<LoginScreen> createState() => _LoginScreenState();
 }
-
 class _LoginScreenState extends State<LoginScreen> {
-  final _noHp = TextEditingController();
-  final _password = TextEditingController();
-  bool _loading = false;
-  bool _showPassword = false;
-
-  @override
-  void dispose() {
-    _noHp.dispose();
-    _password.dispose();
-    super.dispose();
-  }
+  final email = TextEditingController();
+  final password = TextEditingController();
+  bool loading = false;
+  @override void dispose(){email.dispose();password.dispose();super.dispose();}
 
   Future<void> _login() async {
-    if (_noHp.text.trim().isEmpty || _password.text.isEmpty) {
-      _show('Nomor HP dan password wajib diisi.');
-      return;
-    }
-
-    setState(() => _loading = true);
+    if(email.text.trim().isEmpty || password.text.isEmpty){_msg('Email dan password wajib diisi');return;}
+    setState(()=>loading=true);
     try {
-      final result = await ApiService.instance.login(
-        noHp: _noHp.text.trim(),
-        password: _password.text,
-      );
-      final role = (result['user']?['role'] ?? '').toString().toUpperCase();
-      if (!mounted) return;
-
-      Widget page;
-      switch (role) {
-        case 'ADMIN':
-          page = const SuperAdminDashboard();
-          break;
-        case 'SELLER':
-          page = const SellerDashboard();
-          break;
-        default:
-          page = const HomeScreen();
+      final result=await FirebaseAuth.instance.signInWithEmailAndPassword(email: email.text.trim(), password: password.text);
+      final uid=result.user!.uid;
+      final doc=await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      if(!doc.exists) {
+        await FirebaseFirestore.instance.collection('users').doc(uid).set({
+          'email': result.user!.email,
+          'role':'BUYER',
+          'createdAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge:true));
       }
-
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => page),
-      );
-    } catch (e) {
-      _show(e.toString().replaceFirst('Exception: ', ''));
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+      if(mounted) Navigator.pushAndRemoveUntil(context,MaterialPageRoute(builder:(_)=>const AuthGate()),(_)=>false);
+    } on FirebaseAuthException catch(e) {_msg(e.message??'Login gagal');}
+    finally {if(mounted)setState(()=>loading=false);}
   }
-
-  void _show(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    const orange = Color(0xFFFF5722);
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Icon(Icons.storefront, size: 72, color: orange),
-                  const SizedBox(height: 16),
-                  Text('Nusopa.Mart',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(fontSize: 30, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 8),
-                  Text('Marketplace dengan Rekber Admin',
-                    textAlign: TextAlign.center),
-                  const SizedBox(height: 36),
-                  TextField(
-                    controller: _noHp,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: 'Nomor HP',
-                      prefixIcon: Icon(Icons.phone_outlined),
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _password,
-                    obscureText: !_showPassword,
-                    onSubmitted: (_) => _login(),
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        icon: Icon(_showPassword ? Icons.visibility : Icons.visibility_off),
-                        onPressed: () => setState(() => _showPassword = !_showPassword),
-                      ),
-                      border: const OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    height: 52,
-                    child: FilledButton(
-                      onPressed: _loading ? null : _login,
-                      child: _loading
-                        ? const CircularProgressIndicator()
-                        : const Text('MASUK'),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Admin, Seller, dan Pembeli menggunakan autentikasi backend. Tidak ada password Admin di dalam APK.',
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  void _msg(String m)=>ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(m)));
+  @override Widget build(BuildContext context)=>Scaffold(
+    body:SafeArea(child:Center(child:SingleChildScrollView(padding:const EdgeInsets.all(24),child:ConstrainedBox(
+      constraints:const BoxConstraints(maxWidth:420),child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+        const Icon(Icons.storefront,size:72,color:Color(0xFFFF5722)),
+        const SizedBox(height:12),const Text('Nusopa.Mart',textAlign:TextAlign.center,style:TextStyle(fontSize:30,fontWeight:FontWeight.bold)),
+        const SizedBox(height:32),
+        TextField(controller:email,keyboardType:TextInputType.emailAddress,decoration:const InputDecoration(labelText:'Email',border:OutlineInputBorder())),
+        const SizedBox(height:16),
+        TextField(controller:password,obscureText:true,onSubmitted:(_)=>_login(),decoration:const InputDecoration(labelText:'Password',border:OutlineInputBorder())),
+        const SizedBox(height:20),SizedBox(height:52,child:FilledButton(onPressed:loading?null:_login,child:loading?const CircularProgressIndicator():const Text('MASUK'))),
+        const SizedBox(height:12),const Text('Akun ADMIN dan SELLER ditentukan oleh field role pada Firestore oleh pemilik sistem.',textAlign:TextAlign.center),
+      ]))))));
 }
