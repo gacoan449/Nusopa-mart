@@ -1,24 +1,20 @@
+require('dotenv').config();
+
 const express = require('express');
 const mongoose = require('mongoose');
 const apiRoutes = require('./routes/api');
 
 const app = express();
-
 const PORT = process.env.PORT || 5000;
-const MONGO_URI =
-  process.env.MONGO_URI ||
-  'mongodb://localhost:27017/nusopa_mart_db';
+const MONGO_URI = process.env.MONGO_URI;
 
-// ============================================================
-// MIDDLEWARE
-// ============================================================
+if (!MONGO_URI) {
+  console.error('MONGO_URI belum dikonfigurasi.');
+  process.exit(1);
+}
 
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
-
-// ============================================================
-// HEALTH CHECK
-// ============================================================
 
 app.get('/', (req, res) => {
   res.status(200).json({
@@ -29,15 +25,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// ============================================================
-// API ROUTES
-// ============================================================
-
 app.use('/api', apiRoutes);
-
-// ============================================================
-// 404 HANDLER
-// ============================================================
 
 app.use((req, res) => {
   res.status(404).json({
@@ -47,62 +35,34 @@ app.use((req, res) => {
   });
 });
 
-// ============================================================
-// GLOBAL ERROR HANDLER
-// ============================================================
-
 app.use((err, req, res, next) => {
   console.error('API ERROR:', err);
-
   res.status(err.status || 500).json({
     success: false,
     message: err.message || 'Terjadi kesalahan pada server.',
   });
 });
 
-// ============================================================
-// DATABASE + SERVER
-// ============================================================
-
 async function startServer() {
   try {
     await mongoose.connect(MONGO_URI);
-
     console.log('MongoDB Nusopa.Mart berhasil terhubung.');
-
     app.listen(PORT, () => {
-      console.log(
-        `Nusopa.Mart Backend berjalan di port ${PORT}`
-      );
+      console.log(`Nusopa.Mart Backend berjalan di port ${PORT}`);
     });
   } catch (error) {
-    console.error(
-      'Gagal terhubung ke MongoDB:',
-      error.message
-    );
-
+    console.error('Gagal terhubung ke MongoDB:', error.message);
     process.exit(1);
   }
 }
 
-// ============================================================
-// GRACEFUL SHUTDOWN
-// ============================================================
-
 async function shutdown(signal) {
   console.log(`${signal} diterima. Menutup server...`);
-
   try {
     await mongoose.connection.close();
-
-    console.log('Koneksi MongoDB ditutup.');
     process.exit(0);
   } catch (error) {
-    console.error(
-      'Gagal menutup koneksi MongoDB:',
-      error.message
-    );
-
+    console.error('Gagal menutup koneksi MongoDB:', error.message);
     process.exit(1);
   }
 }
@@ -110,4 +70,8 @@ async function shutdown(signal) {
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
-startServer();
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = app;
