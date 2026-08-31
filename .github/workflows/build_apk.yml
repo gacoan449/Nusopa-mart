@@ -28,20 +28,23 @@ jobs:
           channel: stable
           cache: true
 
-      # Keep the checked-in Android project intact. Never regenerate it with
-      # `flutter create` because that can overwrite Firebase/package settings.
+      - name: Install required Android SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;35.0.0" "ndk;28.2.13676358"
+
       - name: Verify modern Flutter Android project
         shell: bash
         run: |
           set -euo pipefail
-
           test -f android/settings.gradle
           test -f android/build.gradle
           test -f android/app/build.gradle
           test -f android/app/src/main/AndroidManifest.xml
           test -f android/app/src/main/kotlin/Nusopa/mart/MainActivity.kt
           test -f android/app/google-services.json
-
           grep -q 'dev.flutter.flutter-plugin-loader' android/settings.gradle
           grep -q 'includeBuild("${flutterSdkPath}/packages/flutter_tools/gradle")' android/settings.gradle
           grep -q 'dev.flutter.flutter-gradle-plugin' android/app/build.gradle
@@ -52,8 +55,6 @@ jobs:
           grep -q 'android:name="flutterEmbedding"' android/app/src/main/AndroidManifest.xml
           grep -q 'android:value="2"' android/app/src/main/AndroidManifest.xml
 
-          echo 'Modern Flutter Android Embedding V2 / Gradle plugin configuration verified.'
-
       - name: Verify Firebase Android configuration
         shell: bash
         run: |
@@ -61,7 +62,6 @@ jobs:
           grep -q '"package_name": "Nusopa.mart"' android/app/google-services.json
           grep -q 'applicationId "Nusopa.mart"' android/app/build.gradle
           grep -q 'namespace "Nusopa.mart"' android/app/build.gradle
-          echo 'Firebase/Android package configuration is consistent: Nusopa.mart'
 
       - name: Verify Android Gradle configuration
         shell: bash
@@ -70,7 +70,6 @@ jobs:
           grep -q 'com.android.application.*8.6.1' android/build.gradle
           grep -q 'com.google.gms.google-services.*4.4.2' android/build.gradle
           grep -q 'id "com.google.gms.google-services"' android/app/build.gradle
-          echo 'Android Gradle configuration verified.'
 
       - name: Install dependencies
         run: flutter pub get
@@ -82,7 +81,7 @@ jobs:
         run: flutter test
 
       - name: Build release APK
-        run: flutter build apk --release
+        run: flutter build apk --release --verbose
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
