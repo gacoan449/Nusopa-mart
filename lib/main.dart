@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-// Memastikan import menggunakan package project Anda agar terbaca sempurna oleh compiler
-import 'package:nusopa_mart/screens/home_screen.dart'; 
+import 'screens/login_screen.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const NusopaMartApp());
 }
 
@@ -12,18 +12,16 @@ class NusopaMartApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const orange = Color(0xFFFF5722);
     return MaterialApp(
       title: 'Nusopa.Mart',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        primaryColor: const Color(0xFFFF5722),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFFF5722),
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: orange),
         textTheme: GoogleFonts.interTextTheme(),
       ),
-      home: HomeScreen(), 
+      home: const LoginScreen(),
     );
   }
 }
