@@ -23,15 +23,10 @@ plugins {
 }
 
 dependencyResolutionManagement {
-    // Diubah menjadi PREFER_PROJECT agar plugin eksternal diizinkan memakai repositori bawaan mereka sendiri
-    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
         google()
         mavenCentral()
-        // Ditambahkan sebagai cadangan keamanan agar mesin Flutter pasti ditemukan
-        maven {
-            url "https://googleapis.com"
-        }
     }
 }
 
