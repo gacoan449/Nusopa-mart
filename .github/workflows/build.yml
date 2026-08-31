@@ -1,0 +1,158 @@
+name: Build Flutter APK
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    name: Build release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Set up Flutter 3.44.7
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.7'
+          channel: stable
+          cache: true
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 36 and NDK 28.2.13676358
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358"
+
+      - name: Recreate Android project
+        shell: bash
+        run: |
+          rm -rf android
+          flutter create --platforms=android .
+
+      - name: Configure Android SDK, NDK and Firebase
+        shell: bash
+        env:
+          FIREBASE_SECRET_JSON: ${{ secrets.FIREBASE_SECRET_JSON }}
+        run: |
+          set -euo pipefail
+
+          test -n "$FIREBASE_SECRET_JSON" || {
+            echo "ERROR: GitHub Secret FIREBASE_SECRET_JSON belum diatur."
+            exit 1
+          }
+
+          mkdir -p android/app
+          printf '%s' "$FIREBASE_SECRET_JSON" > android/app/google-services.json
+
+          if [[ -f android/app/build.gradle.kts ]]; then
+            python3 - <<'PY'
+            from pathlib import Path
+
+            app = Path("android/app/build.gradle.kts")
+            text = app.read_text()
+
+            if 'id("com.google.gms.google-services")' not in text:
+                marker = 'id("dev.flutter.flutter-gradle-plugin")'
+                if marker in text:
+                    text = text.replace(marker, marker + '\n    id("com.google.gms.google-services")', 1)
+                else:
+                    raise SystemExit("Flutter Gradle plugin marker tidak ditemukan")
+
+            text = text.replace('compileSdk = flutter.compileSdkVersion', 'compileSdk = 36')
+            text = text.replace('targetSdk = flutter.targetSdkVersion', 'targetSdk = 36')
+            text = text.replace('ndkVersion = flutter.ndkVersion', 'ndkVersion = "28.2.13676358"')
+            app.write_text(text)
+
+            settings = Path("android/settings.gradle.kts")
+            s = settings.read_text()
+            if 'id("com.google.gms.google-services") version "4.4.4" apply false' not in s:
+                marker = 'id("org.jetbrains.kotlin.android")'
+                lines = s.splitlines()
+                inserted = False
+                out = []
+                for line in lines:
+                    out.append(line)
+                    if marker in line:
+                        indent = line[:len(line) - len(line.lstrip())]
+                        out.append(indent + 'id("com.google.gms.google-services") version "4.4.4" apply false')
+                        inserted = True
+                if not inserted:
+                    raise SystemExit("Kotlin plugin marker tidak ditemukan di settings.gradle.kts")
+                settings.write_text("\n".join(out) + "\n")
+
+          elif [[ -f android/app/build.gradle ]]; then
+            python3 - <<'PY'
+            from pathlib import Path
+
+            app = Path("android/app/build.gradle")
+            text = app.read_text()
+
+            if "id 'com.google.gms.google-services'" not in text and 'id "com.google.gms.google-services"' not in text:
+                if 'plugins {' in text:
+                    text = text.replace('plugins {', "plugins {\n    id 'com.google.gms.google-services'", 1)
+                else:
+                    text = "apply plugin: 'com.google.gms.google-services'\n" + text
+
+            text = text.replace('compileSdk flutter.compileSdkVersion', 'compileSdk 36')
+            text = text.replace('compileSdkVersion flutter.compileSdkVersion', 'compileSdkVersion 36')
+            text = text.replace('targetSdk flutter.targetSdkVersion', 'targetSdk 36')
+            text = text.replace('targetSdkVersion flutter.targetSdkVersion', 'targetSdkVersion 36')
+            text = text.replace('ndkVersion flutter.ndkVersion', 'ndkVersion "28.2.13676358"')
+            app.write_text(text)
+
+            settings = Path("android/settings.gradle")
+            s = settings.read_text()
+            if 'com.google.gms.google-services' not in s:
+                marker = 'id "org.jetbrains.kotlin.android"'
+                lines = s.splitlines()
+                out = []
+                inserted = False
+                for line in lines:
+                    out.append(line)
+                    if marker in line:
+                        indent = line[:len(line) - len(line.lstrip())]
+                        out.append(indent + 'id "com.google.gms.google-services" version "4.4.4" apply false')
+                        inserted = True
+                if not inserted:
+                    raise SystemExit("Kotlin plugin marker tidak ditemukan di settings.gradle")
+                settings.write_text("\n".join(out) + "\n")
+          else:
+            echo "ERROR: android/app/build.gradle(.kts) tidak ditemukan."
+            exit 1
+          PY
+
+          echo "--- android/app/build.gradle(.kts) ---"
+          ls -l android/app/build.gradle* 
+          echo "--- Firebase config ---"
+          test -s android/app/google-services.json
+          echo "google-services.json berhasil dibuat dari GitHub Secret."
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nusopa-mart-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
