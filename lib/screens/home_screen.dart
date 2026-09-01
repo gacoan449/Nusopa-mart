@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'admin_core.dart';
 import 'product_detail_screen.dart';
 import 'orders_screen.dart';
+import 'seller_dashboard.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -137,7 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: primaryBlue.withOpacity(0.2),
+                      color: primaryBlue.withValues(alpha: 0.2),
                       blurRadius: 15,
                       offset: const Offset(0, 8),
                     )
@@ -189,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text('FLASH PROMO', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
                   Text('Promo dan voucher dikelola sederhana oleh Admin', style: GoogleFonts.inter(color: Colors.white70, fontSize: 10)),
                 ])),
-                Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7), decoration: BoxDecoration(color: Colors.white.withOpacity(.12), borderRadius: BorderRadius.circular(9)), child: Text(_formatTimer(), style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800))),
+                Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7), decoration: BoxDecoration(color: Colors.white.withValues(alpha: .12), borderRadius: BorderRadius.circular(9)), child: Text(_formatTimer(), style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800))),
               ]),
             ),
           ),
@@ -259,7 +260,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
-        child: Row(children: [Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [Text(text, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)), const SizedBox(height: 8), Text(subtitle ?? '', style: GoogleFonts.inter(color: Colors.white70, fontSize: 11)), const SizedBox(height: 12), Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: Colors.white.withOpacity(.18), borderRadius: BorderRadius.circular(20)), child: Text('LIHAT SEKARANG', style: GoogleFonts.inter(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700))) ])), Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white.withOpacity(.15), shape: BoxShape.circle), child: Icon(icon, color: Colors.white, size: 38))]),
+        child: Row(children: [Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [Text(text, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)), const SizedBox(height: 8), Text(subtitle ?? '', style: GoogleFonts.inter(color: Colors.white70, fontSize: 11)), const SizedBox(height: 12), Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: Colors.white.withValues(alpha: .18), borderRadius: BorderRadius.circular(20)), child: Text('LIHAT SEKARANG', style: GoogleFonts.inter(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700))) ])), Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white.withValues(alpha: .15), shape: BoxShape.circle), child: Icon(icon, color: Colors.white, size: 38))]),
       ),
     );
   }
@@ -286,7 +287,7 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 )
@@ -306,20 +307,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
 
   String _formatTimer() { final h=(_secondsLeft~/3600).toString().padLeft(2,'0'); final m=((_secondsLeft%3600)~/60).toString().padLeft(2,'0'); final s=(_secondsLeft%60).toString().padLeft(2,'0'); return '$h:$m:$s'; }
-  Widget _buildVoucher(String title, String subtitle) => Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: primaryBlue.withOpacity(.12))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[Text(title, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: primaryBlue)), const SizedBox(height: 4), Text(subtitle, style: GoogleFonts.inter(fontSize: 9, color: Colors.grey))]));
+  Widget _buildVoucher(String title, String subtitle) => Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: primaryBlue.withValues(alpha: .12))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[Text(title, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: primaryBlue)), const SizedBox(height: 4), Text(subtitle, style: GoogleFonts.inter(fontSize: 9, color: Colors.grey))]));
   Widget _buildSkeletonCard() => Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)), padding: const EdgeInsets.all(10), child: Column(children:[Expanded(child: Container(color: Colors.grey.shade200)), const SizedBox(height: 10), Container(height: 10, color: Colors.grey.shade200), const SizedBox(height: 7), Container(height: 10, width: 80, color: Colors.grey.shade200)]));
   Widget _buildEmptyState(String message, IconData icon) => Padding(padding: const EdgeInsets.all(32), child: Column(children:[Icon(icon,size:44,color:Colors.grey.shade400),const SizedBox(height:10),Text(message,style:GoogleFonts.inter(fontWeight:FontWeight.w700)),const SizedBox(height:5),Text('Produk seller akan muncul otomatis di sini.',style:GoogleFonts.inter(fontSize:11,color:Colors.grey))]));
-  Widget _buildProductCard(Map<String,dynamic> x, {VoidCallback? onTap}) { final name=(x['name']??x['productName']??'Produk Nusopa').toString(); final price=x['price']??x['productPrice']??0; final image=(x['imageUrl']??x['image']??'').toString(); final sold=x['sold']??0; final rating=x['rating']??5.0; return InkWell(onTap:onTap,borderRadius:BorderRadius.circular(16),child:Container(decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(16),boxShadow:[BoxShadow(color:Colors.black.withOpacity(.035),blurRadius:12)]),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Expanded(child:ClipRRect(borderRadius:const BorderRadius.vertical(top:Radius.circular(16)),child:image.isEmpty?Container(color:Colors.grey.shade100,child:const Center(child:Icon(Icons.image_outlined,color:Colors.grey,size:40))):Image.network(image,width:double.infinity,fit:BoxFit.cover,errorBuilder:(_,__,___)=>Container(color:Colors.grey.shade100,child:const Icon(Icons.broken_image_outlined))))),Padding(padding:const EdgeInsets.all(10),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(name,maxLines:2,overflow:TextOverflow.ellipsis,style:GoogleFonts.inter(fontSize:12,fontWeight:FontWeight.w600)),const SizedBox(height:6),Text('Rp$price',style:GoogleFonts.inter(fontSize:14,fontWeight:FontWeight.w800,color:primaryBlue)),const SizedBox(height:5),Text('⭐ $rating  |  Terjual $sold',style:GoogleFonts.inter(fontSize:9,color:Colors.grey)),const SizedBox(height:7),Container(padding:const EdgeInsets.symmetric(horizontal:7,vertical:4),decoration:BoxDecoration(color:const Color(0xFFEAF7EF),borderRadius:BorderRadius.circular(7)),child:Row(mainAxisSize:MainAxisSize.min,children:[const Icon(Icons.shield_outlined,size:11,color:Color(0xFF16803A)),const SizedBox(width:3),Text('Rekber Aman',style:GoogleFonts.inter(fontSize:9,fontWeight:FontWeight.w700,color:const Color(0xFF16803A)))]) )]))]))); }
+  Widget _buildProductCard(Map<String,dynamic> x, {VoidCallback? onTap}) { final name=(x['name']??x['productName']??'Produk Nusopa').toString(); final price=x['price']??x['productPrice']??0; final image=(x['imageUrl']??x['image']??'').toString(); final sold=x['sold']??0; final rating=x['rating']??5.0; return InkWell(onTap:onTap,borderRadius:BorderRadius.circular(16),child:Container(decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(16),boxShadow:[BoxShadow(color:Colors.black.withValues(alpha: .035),blurRadius:12)]),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Expanded(child:ClipRRect(borderRadius:const BorderRadius.vertical(top:Radius.circular(16)),child:image.isEmpty?Container(color:Colors.grey.shade100,child:const Center(child:Icon(Icons.image_outlined,color:Colors.grey,size:40))):Image.network(image,width:double.infinity,fit:BoxFit.cover,errorBuilder:(_,__,___)=>Container(color:Colors.grey.shade100,child:const Icon(Icons.broken_image_outlined))))),Padding(padding:const EdgeInsets.all(10),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(name,maxLines:2,overflow:TextOverflow.ellipsis,style:GoogleFonts.inter(fontSize:12,fontWeight:FontWeight.w600)),const SizedBox(height:6),Text('Rp$price',style:GoogleFonts.inter(fontSize:14,fontWeight:FontWeight.w800,color:primaryBlue)),const SizedBox(height:5),Text('⭐ $rating  |  Terjual $sold',style:GoogleFonts.inter(fontSize:9,color:Colors.grey)),const SizedBox(height:7),Container(padding:const EdgeInsets.symmetric(horizontal:7,vertical:4),decoration:BoxDecoration(color:const Color(0xFFEAF7EF),borderRadius:BorderRadius.circular(7)),child:Row(mainAxisSize:MainAxisSize.min,children:[const Icon(Icons.shield_outlined,size:11,color:Color(0xFF16803A)),const SizedBox(width:3),Text('Rekber Aman',style:GoogleFonts.inter(fontSize:9,fontWeight:FontWeight.w700,color:const Color(0xFF16803A)))]) )]))]))); }
 
-  Widget _buildVideoContent() {
-    return Container(
-      color: Colors.black,
-      child: Center(
-        child: Text(
-          'Live Showcase Eksklusif',
-          style: GoogleFonts.inter(color: Colors.white, letterSpacing: 1.0),
-        ),
-      ),
-    );
-  }
 }
