@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
-/// WebRTC engine. Firebase Firestore is signaling only; media never enters Firestore.
+/// Pure P2P WebRTC engine. Firestore carries signaling metadata/ICE only.
 class WebRtcCallService {
   WebRtcCallService._();
   static final instance = WebRtcCallService._();
@@ -63,18 +63,15 @@ class WebRtcCallService {
 
     peer = await createPeerConnection(_config);
     _cleaned = false;
-
     for (final track in localStream!.getTracks()) {
       await peer!.addTrack(track, localStream!);
     }
 
-    peer!.onTrack = (RTCTrackEvent event) {
-      if (event.streams.isNotEmpty) {
-        remoteRenderer.srcObject = event.streams.first;
-      }
+    peer!.onTrack = (event) {
+      if (event.streams.isNotEmpty) remoteRenderer.srcObject = event.streams.first;
     };
 
-    peer!.onIceCandidate = (RTCIceCandidate candidate) async {
+    peer!.onIceCandidate = (candidate) async {
       if (candidate.candidate == null || callId == null) return;
       final collection = isCaller ? 'callerCandidates' : 'calleeCandidates';
       try {
@@ -84,58 +81,49 @@ class WebRtcCallService {
       }
     };
 
-    peer!.onConnectionState = (RTCPeerConnectionState state) async {
-      debugPrint('WebRTC state: $state');
+    peer!.onConnectionState = (state) async {
       if (state == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
         try {
-          await _call.update({
-            'status': 'connected',
-            'connectedAt': FieldValue.serverTimestamp(),
-          });
+          await _call.update({'status': 'connected', 'connectedAt': FieldValue.serverTimestamp()});
         } catch (_) {}
       } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed) {
         try {
-          await _call.update({
-            'status': 'disconnected',
-            'endedAt': FieldValue.serverTimestamp(),
-          });
+          await _call.update({'status': 'disconnected', 'endedAt': FieldValue.serverTimestamp()});
         } catch (_) {}
       }
     };
   }
 
-  Future<String> createCall({required String targetUid, required bool video}) async {
-    if (targetUid.isEmpty || targetUid == uid) {
-      throw ArgumentError('Penerima tidak valid.');
-    }
-
+  Future<String> createCall({required String targetUid, required bool video, String? callerName}) async {
+    if (targetUid.isEmpty || targetUid == uid) throw ArgumentError('Penerima tidak valid.');
     await stop(deleteCallDocument: false);
+
     isCaller = true;
     otherUid = targetUid;
     isVideo = video;
     callId = _db.collection('calls').doc().id;
     _addedCandidateIds.clear();
 
-    await _prepareMediaAndPeer();
-    final offer = await peer!.createOffer({
-      'offerToReceiveAudio': true,
-      'offerToReceiveVideo': video,
-    });
-    await peer!.setLocalDescription(offer);
-
+    // Create the signaling document before gathering ICE so candidate callbacks
+    // can safely write immediately after setLocalDescription().
     await _call.set({
       'callerId': uid,
       'calleeId': targetUid,
       'participants': [uid, targetUid],
+      'callerName': callerName ?? _auth.currentUser?.displayName ?? 'Pengguna',
       'type': video ? 'video' : 'voice',
       'status': 'ringing',
-      'offer': offer.toMap(),
       'createdAt': FieldValue.serverTimestamp(),
     });
 
+    await _prepareMediaAndPeer();
+    final offer = await peer!.createOffer({'offerToReceiveAudio': true, 'offerToReceiveVideo': video});
+    await peer!.setLocalDescription(offer);
+    await _call.update({'offer': offer.toMap()});
+
     _listenToCallDocument();
     _listenForRemoteCandidates('calleeCandidates');
-    _startTimeout();
+    _startRingTimeout();
     return callId!;
   }
 
@@ -147,7 +135,7 @@ class WebRtcCallService {
 
     final snapshot = await _call.get();
     final data = snapshot.data();
-    if (data == null || data['calleeId'] != uid || data['status'] != 'ringing') {
+    if (data == null || data['calleeId'] != uid || data['status'] != 'ringing' || data['offer'] == null) {
       callId = null;
       throw StateError('Panggilan sudah tidak tersedia.');
     }
@@ -157,24 +145,14 @@ class WebRtcCallService {
     await _prepareMediaAndPeer();
 
     final offer = Map<String, dynamic>.from(data['offer'] as Map);
-    await peer!.setRemoteDescription(
-      RTCSessionDescription(offer['sdp'] as String, offer['type'] as String),
-    );
-
-    final answer = await peer!.createAnswer({
-      'offerToReceiveAudio': true,
-      'offerToReceiveVideo': isVideo,
-    });
+    await peer!.setRemoteDescription(RTCSessionDescription(offer['sdp'] as String, offer['type'] as String));
+    final answer = await peer!.createAnswer({'offerToReceiveAudio': true, 'offerToReceiveVideo': isVideo});
     await peer!.setLocalDescription(answer);
-    await _call.update({
-      'answer': answer.toMap(),
-      'status': 'accepted',
-      'acceptedAt': FieldValue.serverTimestamp(),
-    });
+    await _call.update({'answer': answer.toMap(), 'status': 'accepted', 'acceptedAt': FieldValue.serverTimestamp()});
 
     _listenForRemoteCandidates('callerCandidates');
     _listenToCallDocument();
-    _startTimeout();
+    // The 45-second timer applies only while ringing, not after acceptance.
   }
 
   void _listenToCallDocument() {
@@ -188,9 +166,7 @@ class WebRtcCallService {
         final current = await peer!.getRemoteDescription();
         if (current == null) {
           final answer = Map<String, dynamic>.from(data['answer'] as Map);
-          await peer!.setRemoteDescription(
-            RTCSessionDescription(answer['sdp'] as String, answer['type'] as String),
-          );
+          await peer!.setRemoteDescription(RTCSessionDescription(answer['sdp'] as String, answer['type'] as String));
         }
       }
 
@@ -209,13 +185,11 @@ class WebRtcCallService {
         final data = change.doc.data();
         if (data == null) continue;
         try {
-          await peer!.addCandidate(
-            RTCIceCandidate(
-              data['candidate'] as String?,
-              data['sdpMid'] as String?,
-              (data['sdpMLineIndex'] as num?)?.toInt(),
-            ),
-          );
+          await peer!.addCandidate(RTCIceCandidate(
+            data['candidate'] as String?,
+            data['sdpMid'] as String?,
+            (data['sdpMLineIndex'] as num?)?.toInt(),
+          ));
         } catch (e) {
           debugPrint('WebRTC ICE read error: $e');
         }
@@ -223,18 +197,15 @@ class WebRtcCallService {
     });
   }
 
-  void _startTimeout() {
+  void _startRingTimeout() {
     timeoutTimer?.cancel();
     timeoutTimer = Timer(const Duration(seconds: 45), () async {
       if (callId == null) return;
       try {
         final snapshot = await _call.get();
         final status = snapshot.data()?['status']?.toString();
-        if (status == 'ringing' || status == 'accepted') {
-          await _call.update({
-            'status': 'no_answer',
-            'endedAt': FieldValue.serverTimestamp(),
-          });
+        if (status == 'ringing') {
+          await _call.update({'status': 'no_answer', 'endedAt': FieldValue.serverTimestamp()});
         }
       } catch (_) {}
     });
@@ -262,30 +233,24 @@ class WebRtcCallService {
   }
 
   void toggleMute() {
-    for (final track in localStream?.getAudioTracks() ?? <MediaStreamTrack>[]) {
-      track.enabled = !track.enabled;
-    }
+    for (final track in localStream?.getAudioTracks() ?? <MediaStreamTrack>[]) track.enabled = !track.enabled;
   }
 
   bool get isMuted => !(localStream?.getAudioTracks().firstOrNull?.enabled ?? true);
 
   void toggleCamera() {
-    for (final track in localStream?.getVideoTracks() ?? <MediaStreamTrack>[]) {
-      track.enabled = !track.enabled;
-    }
+    for (final track in localStream?.getVideoTracks() ?? <MediaStreamTrack>[]) track.enabled = !track.enabled;
   }
 
   bool get isCameraEnabled => localStream?.getVideoTracks().firstOrNull?.enabled ?? false;
 
   Future<void> switchCamera() async {
-    final tracks = localStream?.getVideoTracks() ?? <MediaStreamTrack>[];
-    for (final track in tracks) {
-      await Helper.switchCamera(track);
-    }
+    for (final track in localStream?.getVideoTracks() ?? <MediaStreamTrack>[]) await Helper.switchCamera(track);
   }
 
+  /// Full resource teardown. Safe to call more than once.
   Future<void> stop({bool deleteCallDocument = false}) async {
-    if (_cleaned && peer == null && localStream == null) return;
+    if (_cleaned && peer == null && localStream == null && !_renderersInitialized) return;
     _cleaned = true;
     timeoutTimer?.cancel();
     timeoutTimer = null;
@@ -299,39 +264,27 @@ class WebRtcCallService {
     localStream = null;
     if (stream != null) {
       for (final track in stream.getTracks()) {
-        try {
-          track.stop();
-        } catch (_) {}
+        try { track.stop(); } catch (_) {}
       }
-      try {
-        await stream.dispose();
-      } catch (_) {}
+      try { await stream.dispose(); } catch (_) {}
     }
 
     final connection = peer;
     peer = null;
     if (connection != null) {
-      try {
-        await connection.close();
-      } catch (_) {}
+      try { await connection.close(); } catch (_) {}
     }
 
     localRenderer.srcObject = null;
     remoteRenderer.srcObject = null;
     if (_renderersInitialized) {
-      try {
-        await localRenderer.dispose();
-      } catch (_) {}
-      try {
-        await remoteRenderer.dispose();
-      } catch (_) {}
+      try { await localRenderer.dispose(); } catch (_) {}
+      try { await remoteRenderer.dispose(); } catch (_) {}
       _renderersInitialized = false;
     }
 
     if (deleteCallDocument && callId != null) {
-      try {
-        await _call.delete();
-      } catch (_) {}
+      try { await _call.delete(); } catch (_) {}
     }
 
     callId = null;
