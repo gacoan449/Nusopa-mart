@@ -3,12 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'webrtc_call_service.dart';
 
 class CallNotificationService {
   CallNotificationService._();
   static final instance = CallNotificationService._();
-
   final _messaging = FirebaseMessaging.instance;
   final _db = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
@@ -77,16 +77,12 @@ class CallNotificationService {
     final context = navigatorKey?.currentState?.overlay?.context;
     if (context == null || _overlayOpen) return;
     _overlayOpen = true;
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => IncomingCallOverlay(
-        callId: id,
-        callerName: (data['callerName'] ?? 'Pengguna').toString(),
-        video: data['type'] == 'video',
-        onClosed: () => _overlayOpen = false,
-      ),
-    );
+    showDialog<void>(context: context, barrierDismissible: false, builder: (_) => IncomingCallOverlay(
+      callId: id,
+      callerName: (data['callerName'] ?? 'Pengguna').toString(),
+      video: data['type'] == 'video',
+      onClosed: () => _overlayOpen = false,
+    ));
   }
 
   void dispose() {
@@ -132,9 +128,7 @@ class IncomingCallOverlay extends StatelessWidget {
 }
 
 @pragma('vm:entry-point')
-Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Notification payload is rendered by Android in background/terminated states.
-}
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
 
 class CallScreen extends StatefulWidget {
   final bool video;
@@ -152,10 +146,21 @@ class _CallScreenState extends State<CallScreen> with WidgetsBindingObserver {
   DateTime startedAt = DateTime.now();
 
   @override
-  void initState() { super.initState(); WidgetsBinding.instance.addObserver(this); clock = Timer.periodic(const Duration(seconds: 1), (_) { if (mounted) setState(() {}); }); }
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    clock = Timer.periodic(const Duration(seconds: 1), (_) { if (mounted) setState(() {}); });
+  }
+
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) { if (state == AppLifecycleState.resumed && mounted) setState(() {}); }
-  Future<void> endCall() async { await service.end(); if (mounted) Navigator.of(context).pop(); }
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) setState(() {});
+  }
+
+  Future<void> endCall() async {
+    await service.end();
+    if (mounted) Navigator.of(context).pop();
+  }
 
   @override
   Widget build(BuildContext context) => PopScope(
@@ -180,5 +185,10 @@ class _CallScreenState extends State<CallScreen> with WidgetsBindingObserver {
   String _duration() { final d = DateTime.now().difference(startedAt); return '${d.inMinutes.remainder(60).toString().padLeft(2, '0')}:${d.inSeconds.remainder(60).toString().padLeft(2, '0')}'; }
 
   @override
-  void dispose() { clock?.cancel(); WidgetsBinding.instance.removeObserver(this); unawaited(service.stop(deleteCallDocument: false)); super.dispose(); }
+  void dispose() {
+    clock?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    unawaited(service.stop(deleteCallDocument: false));
+    super.dispose();
+  }
 }
