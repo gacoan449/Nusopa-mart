@@ -1,33 +1,35 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
-/// Pure peer-to-peer WebRTC call engine.
-/// Firebase is signaling only; media is never stored in Firebase.
+/// WebRTC engine. Firebase Firestore is signaling only; media never enters Firestore.
 class WebRtcCallService {
   WebRtcCallService._();
   static final instance = WebRtcCallService._();
 
-  final _db = FirebaseFirestore.instance;
-  final _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   RTCPeerConnection? peer;
   MediaStream? localStream;
-  StreamSubscription? callSub;
-  StreamSubscription? offerSub;
-  StreamSubscription? answerSub;
-  StreamSubscription? callerCandidatesSub;
-  StreamSubscription? calleeCandidatesSub;
-  final localRenderer = RTCVideoRenderer();
-  final remoteRenderer = RTCVideoRenderer();
+  final RTCVideoRenderer localRenderer = RTCVideoRenderer();
+  final RTCVideoRenderer remoteRenderer = RTCVideoRenderer();
+
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? callSub;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? remoteCandidateSub;
+  Timer? timeoutTimer;
+
   String? callId;
   String? otherUid;
   bool isCaller = false;
+  bool isVideo = false;
+  bool _cleaned = true;
+  bool _renderersInitialized = false;
+  final Set<String> _addedCandidateIds = <String>{};
 
-  String get uid => _auth.currentUser?.uid ?? (throw StateError('Sesi berakhir.'));
-  DocumentReference<Map<String,dynamic>> get _call => _db.collection('calls').doc(callId);
-
-  static const _config = {
+  static const Map<String, dynamic> _config = {
     'iceServers': [
       {'urls': ['stun:stun.l.google.com:19302']},
       {'urls': ['stun:stun1.l.google.com:19302']},
@@ -35,115 +37,311 @@ class WebRtcCallService {
     'sdpSemantics': 'unified-plan',
   };
 
-  Future<void> _prepare({required bool video}) async {
+  String get uid => _auth.currentUser?.uid ?? (throw StateError('Sesi berakhir.'));
+  bool get hasActiveCall => callId != null && peer != null;
+
+  DocumentReference<Map<String, dynamic>> get _call {
+    final id = callId;
+    if (id == null) throw StateError('Tidak ada panggilan aktif.');
+    return _db.collection('calls').doc(id);
+  }
+
+  Future<void> _initRenderers() async {
+    if (_renderersInitialized) return;
     await localRenderer.initialize();
     await remoteRenderer.initialize();
+    _renderersInitialized = true;
+  }
+
+  Future<void> _prepareMediaAndPeer() async {
+    await _initRenderers();
     localStream = await navigator.mediaDevices.getUserMedia({
       'audio': true,
-      'video': video ? {'facingMode': 'user'} : false,
+      'video': isVideo ? {'facingMode': 'user'} : false,
     });
     localRenderer.srcObject = localStream;
+
     peer = await createPeerConnection(_config);
+    _cleaned = false;
+
     for (final track in localStream!.getTracks()) {
       await peer!.addTrack(track, localStream!);
     }
-    peer!.onTrack = (event) {
-      if (event.streams.isNotEmpty) remoteRenderer.srcObject = event.streams.first;
+
+    peer!.onTrack = (RTCTrackEvent event) {
+      if (event.streams.isNotEmpty) {
+        remoteRenderer.srcObject = event.streams.first;
+      }
     };
-    peer!.onIceCandidate = (candidate) async {
+
+    peer!.onIceCandidate = (RTCIceCandidate candidate) async {
       if (candidate.candidate == null || callId == null) return;
-      final side = isCaller ? 'callerCandidates' : 'calleeCandidates';
-      await _call.collection(side).add(candidate.toMap());
+      final collection = isCaller ? 'callerCandidates' : 'calleeCandidates';
+      try {
+        await _call.collection(collection).add(candidate.toMap());
+      } catch (e) {
+        debugPrint('WebRTC ICE write error: $e');
+      }
     };
-    peer!.onConnectionState = (state) {
+
+    peer!.onConnectionState = (RTCPeerConnectionState state) async {
+      debugPrint('WebRTC state: $state');
       if (state == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
-        _call.update({'status': 'connected', 'connectedAt': FieldValue.serverTimestamp()});
-      } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateDisconnected ||
-          state == RTCPeerConnectionState.RTCPeerConnectionStateFailed ||
-          state == RTCPeerConnectionState.RTCPeerConnectionStateClosed) {
-        _call.update({'status': 'disconnected', 'endedAt': FieldValue.serverTimestamp()});
+        try {
+          await _call.update({
+            'status': 'connected',
+            'connectedAt': FieldValue.serverTimestamp(),
+          });
+        } catch (_) {}
+      } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed) {
+        try {
+          await _call.update({
+            'status': 'disconnected',
+            'endedAt': FieldValue.serverTimestamp(),
+          });
+        } catch (_) {}
       }
     };
   }
 
   Future<String> createCall({required String targetUid, required bool video}) async {
-    if (targetUid.isEmpty || targetUid == uid) throw ArgumentError('Penerima tidak valid.');
-    await stop();
+    if (targetUid.isEmpty || targetUid == uid) {
+      throw ArgumentError('Penerima tidak valid.');
+    }
+
+    await stop(deleteCallDocument: false);
     isCaller = true;
     otherUid = targetUid;
+    isVideo = video;
     callId = _db.collection('calls').doc().id;
-    await _prepare(video: video);
-    final offer = await peer!.createOffer({'offerToReceiveAudio': true, 'offerToReceiveVideo': video});
-    await peer!.setLocalDescription(offer);
-    await _call.set({
-      'callerId': uid, 'calleeId': targetUid, 'type': video ? 'video' : 'voice',
-      'status': 'ringing', 'offer': offer.toMap(), 'createdAt': FieldValue.serverTimestamp(),
+    _addedCandidateIds.clear();
+
+    await _prepareMediaAndPeer();
+    final offer = await peer!.createOffer({
+      'offerToReceiveAudio': true,
+      'offerToReceiveVideo': video,
     });
-    _listenForAnswer();
+    await peer!.setLocalDescription(offer);
+
+    await _call.set({
+      'callerId': uid,
+      'calleeId': targetUid,
+      'participants': [uid, targetUid],
+      'type': video ? 'video' : 'voice',
+      'status': 'ringing',
+      'offer': offer.toMap(),
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    _listenToCallDocument();
     _listenForRemoteCandidates('calleeCandidates');
+    _startTimeout();
     return callId!;
   }
 
   Future<void> acceptCall(String id) async {
-    await stop();
+    await stop(deleteCallDocument: false);
     isCaller = false;
     callId = id;
-    final data = (await _call.get()).data();
-    if (data == null || data['calleeId'] != uid || data['status'] != 'ringing') throw StateError('Panggilan tidak tersedia.');
+    _addedCandidateIds.clear();
+
+    final snapshot = await _call.get();
+    final data = snapshot.data();
+    if (data == null || data['calleeId'] != uid || data['status'] != 'ringing') {
+      callId = null;
+      throw StateError('Panggilan sudah tidak tersedia.');
+    }
+
     otherUid = data['callerId'] as String?;
-    await _prepare(video: data['type'] == 'video');
-    final offer = data['offer'] as Map<String,dynamic>;
-    await peer!.setRemoteDescription(RTCSessionDescription(offer['sdp'] as String, offer['type'] as String));
-    final answer = await peer!.createAnswer({'offerToReceiveAudio': true, 'offerToReceiveVideo': data['type'] == 'video'});
+    isVideo = data['type'] == 'video';
+    await _prepareMediaAndPeer();
+
+    final offer = Map<String, dynamic>.from(data['offer'] as Map);
+    await peer!.setRemoteDescription(
+      RTCSessionDescription(offer['sdp'] as String, offer['type'] as String),
+    );
+
+    final answer = await peer!.createAnswer({
+      'offerToReceiveAudio': true,
+      'offerToReceiveVideo': isVideo,
+    });
     await peer!.setLocalDescription(answer);
-    await _call.update({'answer': answer.toMap(), 'status': 'ringing'});
+    await _call.update({
+      'answer': answer.toMap(),
+      'status': 'accepted',
+      'acceptedAt': FieldValue.serverTimestamp(),
+    });
+
     _listenForRemoteCandidates('callerCandidates');
+    _listenToCallDocument();
+    _startTimeout();
   }
 
-  void _listenForAnswer() {
-    answerSub?.cancel();
-    answerSub = _call.snapshots().listen((snap) async {
-      final data = snap.data();
-      if (data == null || data['answer'] == null || peer == null) return;
-      final current = await peer!.getRemoteDescription();
-      if (current != null) return;
-      final a = data['answer'] as Map<String,dynamic>;
-      await peer!.setRemoteDescription(RTCSessionDescription(a['sdp'] as String, a['type'] as String));
+  void _listenToCallDocument() {
+    callSub?.cancel();
+    callSub = _call.snapshots().listen((snapshot) async {
+      final data = snapshot.data();
+      if (data == null) return;
+      final status = data['status']?.toString();
+
+      if (isCaller && data['answer'] != null && peer != null) {
+        final current = await peer!.getRemoteDescription();
+        if (current == null) {
+          final answer = Map<String, dynamic>.from(data['answer'] as Map);
+          await peer!.setRemoteDescription(
+            RTCSessionDescription(answer['sdp'] as String, answer['type'] as String),
+          );
+        }
+      }
+
+      if (status == 'declined' || status == 'disconnected' || status == 'ended' || status == 'timeout' || status == 'no_answer') {
+        await stop(deleteCallDocument: false);
+      }
     });
   }
 
   void _listenForRemoteCandidates(String collection) {
-    final sub = _call.collection(collection).snapshots().listen((snap) async {
-      for (final change in snap.docChanges) {
+    remoteCandidateSub?.cancel();
+    remoteCandidateSub = _call.collection(collection).snapshots().listen((snapshot) async {
+      for (final change in snapshot.docChanges) {
         if (change.type != DocumentChangeType.added || peer == null) continue;
-        final d = change.doc.data();
-        if (d == null) continue;
+        if (!_addedCandidateIds.add(change.doc.id)) continue;
+        final data = change.doc.data();
+        if (data == null) continue;
         try {
-          await peer!.addCandidate(RTCIceCandidate(d['candidate'] as String?, d['sdpMid'] as String?, (d['sdpMLineIndex'] as num?)?.toInt()));
-        } catch (_) {}
+          await peer!.addCandidate(
+            RTCIceCandidate(
+              data['candidate'] as String?,
+              data['sdpMid'] as String?,
+              (data['sdpMLineIndex'] as num?)?.toInt(),
+            ),
+          );
+        } catch (e) {
+          debugPrint('WebRTC ICE read error: $e');
+        }
       }
     });
-    if (collection == 'callerCandidates') callerCandidatesSub = sub; else calleeCandidatesSub = sub;
   }
 
-  Future<void> decline() => _call.update({'status': 'declined', 'endedAt': FieldValue.serverTimestamp()});
-  Future<void> end() => _call.update({'status': 'disconnected', 'endedAt': FieldValue.serverTimestamp()});
+  void _startTimeout() {
+    timeoutTimer?.cancel();
+    timeoutTimer = Timer(const Duration(seconds: 45), () async {
+      if (callId == null) return;
+      try {
+        final snapshot = await _call.get();
+        final status = snapshot.data()?['status']?.toString();
+        if (status == 'ringing' || status == 'accepted') {
+          await _call.update({
+            'status': 'no_answer',
+            'endedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      } catch (_) {}
+    });
+  }
 
-  void toggleMute() { for (final t in localStream?.getAudioTracks() ?? <MediaStreamTrack>[]) t.enabled = !t.enabled; }
-  void toggleCamera() { for (final t in localStream?.getVideoTracks() ?? <MediaStreamTrack>[]) t.enabled = !t.enabled; }
-  Future<void> switchCamera() async { for (final t in localStream?.getVideoTracks() ?? <MediaStreamTrack>[]) await Helper.switchCamera(t); }
+  Future<void> decline() async {
+    if (callId == null) return;
+    try {
+      await _call.update({'status': 'declined', 'endedAt': FieldValue.serverTimestamp()});
+    } finally {
+      await stop(deleteCallDocument: false);
+    }
+  }
 
-  Future<void> stop() async {
-    await callSub?.cancel(); await offerSub?.cancel(); await answerSub?.cancel(); await callerCandidatesSub?.cancel(); await calleeCandidatesSub?.cancel();
-    callSub = offerSub = answerSub = callerCandidatesSub = calleeCandidatesSub = null;
-    for (final t in localStream?.getTracks() ?? <MediaStreamTrack>[]) { try { t.stop(); } catch (_) {} }
-    try { await localStream?.dispose(); } catch (_) {}
+  Future<void> end() async {
+    if (callId == null) {
+      await stop(deleteCallDocument: false);
+      return;
+    }
+    try {
+      await _call.update({'status': 'disconnected', 'endedAt': FieldValue.serverTimestamp()});
+    } finally {
+      await stop(deleteCallDocument: false);
+    }
+  }
+
+  void toggleMute() {
+    for (final track in localStream?.getAudioTracks() ?? <MediaStreamTrack>[]) {
+      track.enabled = !track.enabled;
+    }
+  }
+
+  bool get isMuted => !(localStream?.getAudioTracks().firstOrNull?.enabled ?? true);
+
+  void toggleCamera() {
+    for (final track in localStream?.getVideoTracks() ?? <MediaStreamTrack>[]) {
+      track.enabled = !track.enabled;
+    }
+  }
+
+  bool get isCameraEnabled => localStream?.getVideoTracks().firstOrNull?.enabled ?? false;
+
+  Future<void> switchCamera() async {
+    final tracks = localStream?.getVideoTracks() ?? <MediaStreamTrack>[];
+    for (final track in tracks) {
+      await Helper.switchCamera(track);
+    }
+  }
+
+  Future<void> stop({bool deleteCallDocument = false}) async {
+    if (_cleaned && peer == null && localStream == null) return;
+    _cleaned = true;
+    timeoutTimer?.cancel();
+    timeoutTimer = null;
+
+    await callSub?.cancel();
+    await remoteCandidateSub?.cancel();
+    callSub = null;
+    remoteCandidateSub = null;
+
+    final stream = localStream;
     localStream = null;
-    try { await peer?.close(); } catch (_) {}
+    if (stream != null) {
+      for (final track in stream.getTracks()) {
+        try {
+          track.stop();
+        } catch (_) {}
+      }
+      try {
+        await stream.dispose();
+      } catch (_) {}
+    }
+
+    final connection = peer;
     peer = null;
-    localRenderer.srcObject = null; remoteRenderer.srcObject = null;
-    try { await localRenderer.dispose(); } catch (_) {}
-    try { await remoteRenderer.dispose(); } catch (_) {}
-    callId = null; otherUid = null; isCaller = false;
+    if (connection != null) {
+      try {
+        await connection.close();
+      } catch (_) {}
+    }
+
+    localRenderer.srcObject = null;
+    remoteRenderer.srcObject = null;
+    if (_renderersInitialized) {
+      try {
+        await localRenderer.dispose();
+      } catch (_) {}
+      try {
+        await remoteRenderer.dispose();
+      } catch (_) {}
+      _renderersInitialized = false;
+    }
+
+    if (deleteCallDocument && callId != null) {
+      try {
+        await _call.delete();
+      } catch (_) {}
+    }
+
+    callId = null;
+    otherUid = null;
+    isCaller = false;
+    isVideo = false;
+    _addedCandidateIds.clear();
   }
+}
+
+extension<T> on List<T> {
+  T? get firstOrNull => isEmpty ? null : first;
 }
