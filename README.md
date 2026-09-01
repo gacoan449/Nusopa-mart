@@ -1,31 +1,58 @@
 # Nusopa.Mart
 
-Flutter + Firebase marketplace dengan alur pembayaran Rekber manual.
+Nusopa.Mart adalah aplikasi komunitas + marketplace dengan **Rekber manual**. Aplikasi Android menggunakan Flutter dan Firebase. Dana transaksi **tidak dipindahkan melalui API, wallet aplikasi, atau saldo Firestore**; pembayaran dilakukan ke rekening/lembaga yang telah disiapkan, lalu status transaksi dikelola melalui proses verifikasi admin.
 
-## Arsitektur
-- Firebase Authentication: login akun
-- Cloud Firestore: order, pembayaran, pengiriman, wallet, withdrawal
-- Firebase Storage: bukti pembayaran/foto
-- Flutter: aplikasi Android
+## Arsitektur aktif
+- Flutter: aplikasi Android.
+- Firebase Authentication: akun/login.
+- Cloud Firestore: profil sosial, feed, komunitas, chat, order, bukti pembayaran, status Rekber, dan permintaan pencairan.
+- Firebase Storage: foto dan bukti pembayaran.
+- Firestore Security Rules: membatasi siapa yang boleh membaca/mengubah data.
 
-## Status Rekber
-MENUNGGU_PEMBAYARAN -> MENUNGGU_VERIFIKASI -> TERKUNCI -> DIKIRIM -> SELESAI -> DANA_TERSEDIA
+## Alur Rekber
+`MENUNGGU_PEMBAYARAN` → `MENUNGGU_VERIFIKASI` → `DIPROSES` → `SIAP_DIKIRIM` → `DIKIRIM` → `DITERIMA`
 
-Withdrawal:
-MENUNGGU_ADMIN -> DISETUJUI -> DITRANSFER
+Pembayaran eksternal tetap harus diverifikasi admin. Status finansial tidak boleh dibuat seolah-olah berhasil hanya karena pengguna mengunggah bukti transfer.
 
-## Firebase yang sudah ditemukan
-Project ID: `desapay-10614`
+## Fitur sosial
+- Feed postingan.
+- Foto postingan.
+- Like.
+- Komentar.
+- Follow/follower.
+- Notifikasi aktivitas.
+- Direct chat.
+- Komunitas/grup.
+- Share/repost ke feed.
+- Pelaporan postingan untuk moderasi admin.
 
-> File yang terupload sebelumnya bernama `google-services..json` (dua titik). Android mengharuskan nama tepat `google-services.json`.
+## Fitur marketplace
+- Toko dan produk.
+- Keranjang.
+- Checkout.
+- Order dan tracking.
+- Bukti pembayaran.
+- Proses pengiriman.
+- Withdrawal seller untuk diproses admin.
 
-## Penting untuk uang/saldo
-Flutter client tidak boleh diberi izin langsung mengubah saldo wallet. Untuk sistem uang produksi gunakan Firebase Cloud Functions/Admin SDK untuk verifikasi pembayaran, pelepasan dana, dan withdrawal. Rules Firestore saja tidak dapat menggantikan logika server tepercaya untuk transaksi finansial.
+## Keamanan penting
+Client tidak diberi izin menulis collection `wallets`. Nilai order, payment status, dan perubahan status Rekber dibatasi oleh rules. Admin adalah pihak yang memverifikasi pembayaran eksternal dan menangani penyelesaian transaksi.
 
-## Setup
-1. Pastikan Firebase Authentication Email/Password aktif.
-2. Aktifkan Firestore dan Storage.
-3. Upload `android/app/google-services.json`.
-4. Buat project Android Flutter lengkap bila folder android belum berisi Gradle wrapper/build files.
-5. Jalankan `flutter pub get`.
-6. Jalankan `flutter analyze`.
+Folder `backend/` adalah komponen API lama/eksperimental dan **bukan jalur runtime aplikasi Flutter saat ini**. Jangan menjalankan atau mengandalkannya untuk transaksi Nusopa tanpa keputusan arsitektur baru.
+
+## Build pengujian
+GitHub Actions menjalankan `flutter pub get`, `flutter analyze`, `flutter test`, build App Bundle release, dan build APK debug untuk perangkat pengujian. Artifact APK pengujian diberi nama `nusopa-mart-testing-apk`.
+
+## Checklist sebelum dibagikan
+1. Deploy `firestore.rules` terbaru ke Firebase.
+2. Pastikan Email/Password Authentication aktif.
+3. Pastikan Firebase Storage aktif.
+4. Uji akun pembeli dan seller dengan data terpisah.
+5. Uji order → upload bukti → verifikasi admin → proses → kirim → diterima.
+6. Uji bahwa user biasa tidak dapat mengubah wallet/payment verification.
+7. Uji posting → like → komentar → follow → share/repost → report.
+8. Uji direct chat dan grup.
+9. Pastikan workflow GitHub menghasilkan APK debug yang dapat dipasang di HP penguji.
+
+## Catatan
+Build uji coba bukan berarti sistem sudah siap menerima dana publik tanpa pengujian operasional, SOP admin, dan kepastian hukum/kelembagaan Rekber. Untuk malam ini, gunakan transaksi nominal uji dan data non-sensitif terlebih dahulu.
