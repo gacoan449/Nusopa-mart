@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'admin_core.dart';
 import 'product_detail_screen.dart';
 import 'orders_screen.dart';
@@ -66,13 +67,9 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.chat_bubble_outline, color: primaryBlue),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ChatAdminScreen()),
-              );
-            },
+            icon: const Icon(Icons.headset_mic_rounded, color: primaryBlue),
+            tooltip: 'WhatsApp Admin',
+            onPressed: _openWhatsApp,
           ),
           const SizedBox(width: 8),
         ],
@@ -108,6 +105,8 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  Future<void> _openWhatsApp() async { final u=Uri.parse('https://wa.me/6285642131263?text=Halo%20Admin%20Nusopa.Mart%2C%20saya%20butuh%20bantuan.'); await launchUrl(u,mode:LaunchMode.externalApplication); }
 
   Widget _buildAccount() => Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
     const CircleAvatar(radius: 34, backgroundColor: Color(0xFFEAF3FF), child: Icon(Icons.person_rounded, size: 38, color: primaryBlue)),
