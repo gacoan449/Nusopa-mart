@@ -3,10 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'social_feed_screen.dart';
 import 'groups_screen.dart';
 import 'social_profile_screen.dart';
-import 'home_screen.dart' show HomeScreen;
 
-/// Shell baru untuk pengalaman sosial.
-/// Tab Marketplace tetap tersedia sehingga fitur lama tidak dihapus.
+/// Shell utama pengalaman sosial Nusopa.Mart.
+/// Beranda dibuat sebagai Feed ala Facebook; marketplace/Rekber tidak menjadi tab utama.
 class SocialHomeScreen extends StatefulWidget {
   const SocialHomeScreen({super.key});
   @override
@@ -18,13 +17,7 @@ class _SocialHomeScreenState extends State<SocialHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = <Widget>[
-      const SocialFeedScreen(),
-      const GroupsScreen(),
-      const HomeScreen(),
-      const SocialProfileScreen(),
-    ];
-
+    const pages = <Widget>[SocialFeedScreen(), GroupsScreen(), SocialProfileScreen()];
     return Scaffold(
       body: IndexedStack(index: index, children: pages),
       bottomNavigationBar: NavigationBar(
@@ -32,22 +25,22 @@ class _SocialHomeScreenState extends State<SocialHomeScreen> {
         onDestinationSelected: (value) => setState(() => index = value),
         backgroundColor: Colors.white,
         indicatorColor: const Color(0xFFEAF2FF),
-        destinations: [
-          NavigationDestination(icon: const Icon(Icons.home_outlined), selectedIcon: const Icon(Icons.home), label: 'Beranda'),
-          NavigationDestination(icon: const Icon(Icons.groups_outlined), selectedIcon: const Icon(Icons.groups), label: 'Grup'),
-          NavigationDestination(icon: const Icon(Icons.storefront_outlined), selectedIcon: const Icon(Icons.storefront), label: 'Belanja'),
-          NavigationDestination(icon: const Icon(Icons.person_outline), selectedIcon: const Icon(Icons.person), label: 'Profil'),
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Beranda'),
+          NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups), label: 'Grup'),
+          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profil'),
         ],
       ),
     );
   }
 }
 
-/// Widget kecil yang bisa dipakai jika nanti header shell membutuhkan judul.
+/// Judul section reusable untuk halaman sosial.
 class SocialSectionTitle extends StatelessWidget {
   final String title;
   final String? subtitle;
   const SocialSectionTitle({super.key, required this.title, this.subtitle});
+
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 4),
