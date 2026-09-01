@@ -1,6 +1,7 @@
 const { onDocumentUpdated } = require('firebase-functions/v2/firestore');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { initializeApp } = require('firebase-admin/app');
-const { getFirestore } = require('firebase-admin/firestore');
+const { getFirestore, Timestamp } = require('firebase-admin/firestore');
 const { getMessaging } = require('firebase-admin/messaging');
 
 initializeApp();
@@ -43,6 +44,23 @@ exports.notifyIncomingCall = onDocumentUpdated('calls/{callId}', async (event) =
   });
 });
 
+// Server-side timeout makes the 45-second rule work even if the caller app is killed.
+exports.expireUnansweredCalls = onSchedule('every 1 minutes', async () => {
+  const cutoff = Timestamp.fromMillis(Date.now() - 45 * 1000);
+  const snapshot = await db.collection('calls')
+    .where('status', '==', 'ringing')
+    .where('createdAt', '<=', cutoff)
+    .limit(100)
+    .get();
+
+  if (snapshot.empty) return;
+  const batch = db.batch();
+  for (const doc of snapshot.docs) {
+    batch.update(doc.ref, { status: 'no_answer', endedAt: Timestamp.now() });
+  }
+  await batch.commit();
+});
+
 exports.cleanupEndedCallSignaling = onDocumentUpdated('calls/{callId}', async (event) => {
   const before = event.data?.before.data();
   const after = event.data?.after.data();
@@ -52,8 +70,8 @@ exports.cleanupEndedCallSignaling = onDocumentUpdated('calls/{callId}', async (e
   const callRef = db.collection('calls').doc(event.params.callId);
   const batch = db.batch();
   for (const side of ['callerCandidates', 'calleeCandidates']) {
-    const snapshot = await callRef.collection(side).get();
-    for (const doc of snapshot.docs) batch.delete(doc.ref);
+    const candidates = await callRef.collection(side).get();
+    for (const doc of candidates.docs) batch.delete(doc.ref);
   }
   await batch.commit();
 });
