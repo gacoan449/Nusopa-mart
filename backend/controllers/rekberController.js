@@ -4,112 +4,15 @@ const Order = require('../models/Order');
 const Wallet = require('../models/Wallet');
 const Review = require('../models/Review');
 const User = require('../models/User');
-
 const FEE = 3000;
 const AUTO_RELEASE_MS = 72 * 60 * 60 * 1000;
 const id = (prefix) => `${prefix}-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
-
-function money(value) {
-  const n = Number(value);
-  if (!Number.isFinite(n) || n < 0) throw new Error('Nilai uang tidak valid.');
-  return Math.round(n);
-}
-
-exports.createOrder = async (req, res) => {
-  const buyerId = req.user.id;
-  const { sellerId, productId, namaProduk, jumlah = 1, hargaProduk, biayaEkspedisi = 0, idempotencyKey } = req.body;
-  if (!sellerId || !namaProduk || !idempotencyKey) return res.status(400).json({ success:false, message:'sellerId, namaProduk dan idempotencyKey wajib.' });
-  if (!mongoose.Types.ObjectId.isValid(sellerId) || String(sellerId) === String(buyerId)) return res.status(400).json({ success:false, message:'sellerId tidak valid.' });
-  if (idempotencyKey.length < 16 || idempotencyKey.length > 128) return res.status(400).json({ success:false, message:'Idempotency key tidak valid.' });
-  const qty = Number(jumlah), price = money(hargaProduk), shipping = money(biayaEkspedisi);
-  if (!Number.isInteger(qty) || qty < 1 || qty > 999999) return res.status(400).json({ success:false, message:'Jumlah tidak valid.' });
-  try {
-    const existing = await Order.findOne({ releaseIdempotencyKey: `CREATE:${buyerId}:${idempotencyKey}` });
-    if (existing) return res.status(200).json({ success:true, data:existing, idempotent:true });
-    const subtotal = qty * price;
-    const order = await Order.create({ orderId:id('NSP'), buyerId, sellerId, productId:productId ? String(productId) : null, namaProduk:String(namaProduk).trim(), jumlah:qty, hargaProduk:price, subtotal, biayaEkspedisi:shipping, biayaRekber:FEE, totalPembayaran:subtotal + shipping + FEE, metodePembayaran:'TRANSFER_REKBER', statusPembayaran:'MENUNGGU_PEMBAYARAN', statusPesanan:'MENUNGGU_PEMBAYARAN', statusDana:'BELUM_DIBAYAR', danaSeller:subtotal, kodePembayaran:id('PAY'), releaseIdempotencyKey:`CREATE:${buyerId}:${idempotencyKey}` });
-    return res.status(201).json({ success:true, data:order });
-  } catch (e) { return res.status(500).json({ success:false, message:'Gagal membuat transaksi.' }); }
-};
-
-exports.listMine = async (req, res) => {
-  const filter = req.query.role === 'seller' ? { sellerId:req.user.id } : { buyerId:req.user.id };
-  const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 50);
-  try { const data = await Order.find(filter).sort({ createdAt:-1 }).limit(limit).lean(); return res.json({ success:true, data }); }
-  catch (e) { return res.status(500).json({ success:false, message:'Gagal memuat transaksi.' }); }
-};
-
-async function releaseOrder(orderId, releasedBy) {
-  const session = await mongoose.startSession();
-  try {
-    session.startTransaction();
-    const order = await Order.findOne({ orderId }).session(session);
-    if (!order) throw new Error('Pesanan tidak ditemukan.');
-    if (order.statusDana !== 'TERKUNCI') return { order, released:false };
-    const wallet = await Wallet.findOneAndUpdate({ sellerId:order.sellerId, statusWallet:'AKTIF', saldoTerkunci:{ $gte:order.danaSeller } }, { $inc:{ saldoTerkunci:-order.danaSeller, saldoTersedia:order.danaSeller } }, { new:true, session });
-    if (!wallet) throw new Error('Saldo escrow seller tidak cukup atau wallet dibekukan.');
-    order.statusDana = 'TERSEDIA';
-    order.statusPesanan = 'SELESAI';
-    order.waktuSelesai = new Date();
-    order.releasedBy = releasedBy;
-    order.releaseIdempotencyKey = `RELEASE:${order._id}`;
-    await order.save({ session });
-    await session.commitTransaction();
-    return { order, released:true, wallet };
-  } catch (e) { await session.abortTransaction(); throw e; }
-  finally { await session.endSession(); }
-}
-
-exports.confirmReceived = async (req, res) => {
-  const { orderId } = req.body;
-  if (!orderId) return res.status(400).json({ success:false, message:'orderId wajib.' });
-  try {
-    const order = await Order.findOne({ orderId });
-    if (!order || String(order.buyerId) !== String(req.user.id)) return res.status(404).json({ success:false, message:'Pesanan tidak ditemukan.' });
-    if (order.statusDana !== 'TERKUNCI' || !['DIKIRIM','DITERIMA'].includes(order.statusPesanan)) return res.status(409).json({ success:false, message:'Pesanan belum memenuhi syarat pencairan.' });
-    const result = await releaseOrder(orderId, 'BUYER');
-    return res.json({ success:true, message:result.released?'Dana berhasil dicairkan.':'Dana sudah dicairkan.', data:result.order });
-  } catch (e) { return res.status(409).json({ success:false, message:e.message }); }
-};
-
-exports.autoRelease = async (req, res) => {
-  const now = new Date();
-  const orders = await Order.find({ statusDana:'TERKUNCI', autoReleaseAt:{ $lte:now } }).limit(100).select('orderId');
-  const results = [];
-  for (const order of orders) { try { results.push(await releaseOrder(order.orderId, 'AUTO')); } catch (_) {} }
-  return res.json({ success:true, processed:results.length });
-};
-
-exports.createReview = async (req, res) => {
-  const { orderId, rating, comment = '' } = req.body;
-  const score = Number(rating);
-  if (!orderId || !Number.isInteger(score) || score < 1 || score > 5) return res.status(400).json({ success:false, message:'Rating harus bilangan bulat 1-5.' });
-  const session = await mongoose.startSession();
-  try {
-    session.startTransaction();
-    const order = await Order.findOne({ orderId }).session(session);
-    if (!order || String(order.buyerId) !== String(req.user.id) || order.statusDana !== 'TERSEDIA') throw new Error('Transaksi belum selesai atau bukan milik Anda.');
-    const review = await Review.create([{ orderId:order._id, buyerId:order.buyerId, sellerId:order.sellerId, rating:score, comment:String(comment).trim() }], { session });
-    const seller = await User.findById(order.sellerId).session(session);
-    const count = (seller.rekberReviewCount || 0) + 1;
-    const avg = (((seller.rekberRating || 0) * (count - 1)) + score) / count;
-    seller.rekberReviewCount = count; seller.rekberRating = Number(avg.toFixed(2));
-    await seller.save({ session });
-    await session.commitTransaction();
-    return res.status(201).json({ success:true, data:review[0], rating:seller.rekberRating });
-  } catch (e) { await session.abortTransaction(); return res.status(409).json({ success:false, message:e.message }); }
-  finally { await session.endSession(); }
-};
-
-exports.verifyPaymentAndLock = async (payment, adminId, session) => {
-  const order = await Order.findById(payment.orderId).session(session);
-  if (!order || order.statusDana !== 'BELUM_DIBAYAR' || payment.status !== 'MENUNGGU_VERIFIKASI') throw new Error('Transaksi sudah diproses atau tidak valid.');
-  let wallet = await Wallet.findOne({ sellerId:order.sellerId }).session(session);
-  if (!wallet) wallet = await Wallet.create([{ sellerId:order.sellerId, statusWallet:'AKTIF' }], { session }).then(x => x[0]);
-  if (wallet.statusWallet !== 'AKTIF') throw new Error('Wallet seller dibekukan.');
-  wallet.saldoTerkunci += order.danaSeller;
-  payment.status='DIVERIFIKASI'; payment.diverifikasiOleh=adminId; payment.waktuVerifikasi=new Date();
-  order.statusPembayaran='DIVERIFIKASI'; order.statusPesanan='PEMBAYARAN_DIVERIFIKASI'; order.statusDana='TERKUNCI'; order.waktuVerifikasi=new Date(); order.autoReleaseAt=new Date(Date.now()+AUTO_RELEASE_MS);
-  await wallet.save({ session }); await payment.save({ session }); await order.save({ session });
-  return order;
-};
+function money(value){const n=Number(value);if(!Number.isSafeInteger(n)||n<0)throw new Error('Nilai uang tidak valid.');return n;}
+exports.createOrder=async(req,res)=>{const buyerId=req.user.id;const{sellerId,productId,namaProduk,jumlah=1,hargaProduk,biayaEkspedisi=0,idempotencyKey}=req.body;if(!sellerId||!namaProduk||!idempotencyKey)return res.status(400).json({success:false,message:'sellerId, namaProduk dan idempotencyKey wajib.'});if(!mongoose.Types.ObjectId.isValid(sellerId)||String(sellerId)===String(buyerId))return res.status(400).json({success:false,message:'sellerId tidak valid.'});if(String(idempotencyKey).length<16||String(idempotencyKey).length>128)return res.status(400).json({success:false,message:'Idempotency key tidak valid.'});const qty=Number(jumlah),price=money(hargaProduk),shipping=money(biayaEkspedisi);if(!Number.isInteger(qty)||qty<1||qty>999999)return res.status(400).json({success:false,message:'Jumlah tidak valid.'});try{const key=`CREATE:${buyerId}:${idempotencyKey}`;const existing=await Order.findOne({releaseIdempotencyKey:key});if(existing)return res.json({success:true,data:existing,idempotent:true});const subtotal=qty*price;const order=await Order.create({orderId:id('NSP'),buyerId,sellerId,productId:productId?String(productId):null,namaProduk:String(namaProduk).trim(),jumlah:qty,hargaProduk:price,subtotal,biayaEkspedisi:shipping,biayaRekber:FEE,totalPembayaran:subtotal+shipping+FEE,metodePembayaran:'TRANSFER_REKBER',statusPembayaran:'MENUNGGU_PEMBAYARAN',statusPesanan:'MENUNGGU_PEMBAYARAN',statusDana:'BELUM_DIBAYAR',danaSeller:subtotal,kodePembayaran:id('PAY'),releaseIdempotencyKey:key});return res.status(201).json({success:true,data:order});}catch(e){return res.status(500).json({success:false,message:'Gagal membuat transaksi.'});}};
+exports.listMine=async(req,res)=>{const filter=req.query.role==='seller'?{sellerId:req.user.id}:{buyerId:req.user.id};const limit=Math.min(Math.max(Number(req.query.limit)||20,1),50);try{return res.json({success:true,data:await Order.find(filter).sort({createdAt:-1}).limit(limit).lean()});}catch(_){return res.status(500).json({success:false,message:'Gagal memuat transaksi.'});}};
+async function releaseOrder(orderId,releasedBy){const session=await mongoose.startSession();try{session.startTransaction();const order=await Order.findOne({orderId}).session(session);if(!order)throw new Error('Pesanan tidak ditemukan.');if(order.statusDana!=='TERKUNCI')return{order,released:false};const wallet=await Wallet.findOneAndUpdate({sellerId:order.sellerId,statusWallet:'AKTIF',saldoTerkunci:{$gte:order.danaSeller}},{$inc:{saldoTerkunci:-order.danaSeller,saldoTersedia:order.danaSeller}},{new:true,session});if(!wallet)throw new Error('Saldo escrow seller tidak cukup atau wallet dibekukan.');order.statusDana='TERSEDIA';order.statusPesanan='SELESAI';order.waktuSelesai=new Date();order.releasedBy=releasedBy;order.releaseIdempotencyKey=`RELEASE:${order._id}`;await order.save({session});await session.commitTransaction();return{order,released:true,wallet};}catch(e){await session.abortTransaction();throw e;}finally{await session.endSession();}}
+exports.confirmReceived=async(req,res)=>{const{orderId}=req.body;if(!orderId)return res.status(400).json({success:false,message:'orderId wajib.'});try{const order=await Order.findOne({orderId});if(!order||String(order.buyerId)!==String(req.user.id))return res.status(404).json({success:false,message:'Pesanan tidak ditemukan.'});if(order.statusDana!=='TERKUNCI'||!['DIKIRIM','DITERIMA'].includes(order.statusPesanan))return res.status(409).json({success:false,message:'Pesanan belum memenuhi syarat pencairan.'});const result=await releaseOrder(orderId,'BUYER');return res.json({success:true,message:result.released?'Dana berhasil dicairkan.':'Dana sudah dicairkan.',data:result.order});}catch(e){return res.status(409).json({success:false,message:e.message});}};
+exports.processDueEscrow=async()=>{const orders=await Order.find({statusDana:'TERKUNCI',autoReleaseAt:{$lte:new Date()}}).limit(100).select('orderId');let processed=0;for(const item of orders){try{const result=await releaseOrder(item.orderId,'AUTO');if(result.released)processed++;}catch(e){console.error('AUTO RELEASE',item.orderId,e.message);}}return processed;};
+exports.autoRelease=async(req,res)=>{try{return res.json({success:true,processed:await exports.processDueEscrow()});}catch(e){return res.status(500).json({success:false,message:'Gagal menjalankan auto-release.'});}};
+exports.createReview=async(req,res)=>{const{orderId,rating,comment=''}=req.body;const score=Number(rating);if(!orderId||!Number.isInteger(score)||score<1||score>5)return res.status(400).json({success:false,message:'Rating harus bilangan bulat 1-5.'});const session=await mongoose.startSession();try{session.startTransaction();const order=await Order.findOne({orderId}).session(session);if(!order||String(order.buyerId)!==String(req.user.id)||order.statusDana!=='TERSEDIA')throw new Error('Transaksi belum selesai atau bukan milik Anda.');const review=await Review.create([{orderId:order._id,buyerId:order.buyerId,sellerId:order.sellerId,rating:score,comment:String(comment).trim()}],{session});const seller=await User.findById(order.sellerId).session(session);const count=(seller.rekberReviewCount||0)+1;seller.rekberReviewCount=count;seller.rekberRating=Number((((seller.rekberRating||0)*(count-1)+score)/count).toFixed(2));await seller.save({session});await session.commitTransaction();return res.status(201).json({success:true,data:review[0],rating:seller.rekberRating});}catch(e){await session.abortTransaction();return res.status(409).json({success:false,message:e.message});}finally{await session.endSession();}};
+exports.verifyPaymentAndLock=async(payment,adminId,session)=>{const order=await Order.findById(payment.orderId).session(session);if(!order||order.statusDana!=='BELUM_DIBAYAR'||payment.status!=='MENUNGGU_VERIFIKASI')throw new Error('Transaksi sudah diproses atau tidak valid.');let wallet=await Wallet.findOne({sellerId:order.sellerId}).session(session);if(!wallet)wallet=(await Wallet.create([{sellerId:order.sellerId,statusWallet:'AKTIF'}],{session}))[0];if(wallet.statusWallet!=='AKTIF')throw new Error('Wallet seller dibekukan.');wallet.saldoTerkunci+=order.danaSeller;payment.status='DIVERIFIKASI';payment.diverifikasiOleh=adminId;payment.waktuVerifikasi=new Date();order.statusPembayaran='DIVERIFIKASI';order.statusPesanan='PEMBAYARAN_DIVERIFIKASI';order.statusDana='TERKUNCI';order.waktuVerifikasi=new Date();order.autoReleaseAt=new Date(Date.now()+AUTO_RELEASE_MS);await wallet.save({session});await payment.save({session});await order.save({session});return order;};
