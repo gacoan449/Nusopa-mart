@@ -158,15 +158,16 @@ jobs:
           retention-days: 14
 
       - name: Build APK Debug (Khusus Bahan Tes HP)
+        working-directory: android
         run: |
-          flutter build apk --debug --android-skip-build-dependency-validation
+          ./gradlew :app:assembleDebug
 
       - name: Locate and Sync APK Output
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p build/app/outputs/flutter-apk
-          FOUND_APK="$(find build/app/outputs/ -type f -name "*debug.apk" | head -n 1)"
+          FOUND_APK="$(find . -type f -name "*debug.apk" | head -n 1)"
           if [ -z "$FOUND_APK" ]; then
             echo "Error: File .apk debug tidak ditemukan!"
             exit 1
