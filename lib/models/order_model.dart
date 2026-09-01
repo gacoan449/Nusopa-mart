@@ -41,11 +41,11 @@ class OrderModel {
       productImage: map['productImage'] ?? '',
       price: map['price']?.toInt() ?? 0,
       qty: map['qty']?.toInt() ?? 1,
-      ongkirManual: map['ongkirManual']?.toInt() ?? 0,
+      ongkirManual: (map['ongkirManual'] ?? map['shippingCost'] ?? 0)?.toInt() ?? 0,
       status: map['status'] ?? 'Menunggu Pembayaran',
-      namaEkspedisi: map['namaEkspedisi'],
-      nomorResi: map['nomorResi'],
-      fotoResiUrl: map['fotoResiUrl'],
+      namaEkspedisi: map['namaEkspedisi'] ?? map['courier'],
+      nomorResi: map['nomorResi'] ?? map['trackingNumber'],
+      fotoResiUrl: map['fotoResiUrl'] ?? map['shippingProofUrl'],
       linkCekLogistik: map['linkCekLogistik'],
     );
   }
