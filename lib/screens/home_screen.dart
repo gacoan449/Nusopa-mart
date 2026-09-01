@@ -136,7 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: SizedBox(
+              child: Container(
                 height: 170,
                 width: double.infinity,
                 decoration: BoxDecoration(
@@ -188,6 +188,32 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
 
           const SliverToBoxAdapter(child: Divider(color: Colors.black12, thickness: 0.5)),
+          SliverToBoxAdapter(
+            child: Container(
+              margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: const Color(0xFF202124), borderRadius: BorderRadius.circular(18)),
+              child: Row(children: [
+                const Icon(Icons.bolt_rounded, color: Color(0xFFFFC107), size: 32),
+                const SizedBox(width: 10),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('FLASH PROMO', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
+                  Text('Promo dan voucher dikelola sederhana oleh Admin', style: GoogleFonts.inter(color: Colors.white70, fontSize: 10)),
+                ])),
+                Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7), decoration: BoxDecoration(color: Colors.white.withOpacity(.12), borderRadius: BorderRadius.circular(9)), child: Text(_formatTimer(), style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800))),
+              ]),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Row(children: [
+                Expanded(child: _buildVoucher('🎁 VOUCHER BARU', 'Promo pengguna baru')),
+                const SizedBox(width: 10),
+                Expanded(child: _buildVoucher('🛡️ REKBER AMAN', 'Transaksi lebih tenang')),
+              ]),
+            ),
+          ),
 
           // Judul Seksi Produk
           SliverToBoxAdapter(
@@ -290,6 +316,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
 
+  String _formatTimer() { final h=(_secondsLeft~/3600).toString().padLeft(2,'0'); final m=((_secondsLeft%3600)~/60).toString().padLeft(2,'0'); final s=(_secondsLeft%60).toString().padLeft(2,'0'); return '$h:$m:$s'; }
+  Widget _buildVoucher(String title, String subtitle) => Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: primaryBlue.withOpacity(.12))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[Text(title, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: primaryBlue)), const SizedBox(height: 4), Text(subtitle, style: GoogleFonts.inter(fontSize: 9, color: Colors.grey))]));
   Widget _buildSkeletonCard() => Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)), padding: const EdgeInsets.all(10), child: Column(children:[Expanded(child: Container(color: Colors.grey.shade200)), const SizedBox(height: 10), Container(height: 10, color: Colors.grey.shade200), const SizedBox(height: 7), Container(height: 10, width: 80, color: Colors.grey.shade200)]));
   Widget _buildEmptyState(String message, IconData icon) => Padding(padding: const EdgeInsets.all(32), child: Column(children:[Icon(icon,size:44,color:Colors.grey.shade400),const SizedBox(height:10),Text(message,style:GoogleFonts.inter(fontWeight:FontWeight.w700)),const SizedBox(height:5),Text('Produk seller akan muncul otomatis di sini.',style:GoogleFonts.inter(fontSize:11,color:Colors.grey))]));
   Widget _buildProductCard(Map<String,dynamic> x) { final name=(x['name']??x['productName']??'Produk Nusopa').toString(); final price=x['price']??x['productPrice']??0; final image=(x['imageUrl']??x['image']??'').toString(); final sold=x['sold']??0; final rating=x['rating']??5.0; return Container(decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(16),boxShadow:[BoxShadow(color:Colors.black.withOpacity(.035),blurRadius:12)]),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Expanded(child:ClipRRect(borderRadius:const BorderRadius.vertical(top:Radius.circular(16)),child:image.isEmpty?Container(color:Colors.grey.shade100,child:const Center(child:Icon(Icons.image_outlined,color:Colors.grey,size:40))):Image.network(image,width:double.infinity,fit:BoxFit.cover,errorBuilder:(_,__,___)=>Container(color:Colors.grey.shade100,child:const Icon(Icons.broken_image_outlined))))),Padding(padding:const EdgeInsets.all(10),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(name,maxLines:2,overflow:TextOverflow.ellipsis,style:GoogleFonts.inter(fontSize:12,fontWeight:FontWeight.w600)),const SizedBox(height:6),Text('Rp$price',style:GoogleFonts.inter(fontSize:14,fontWeight:FontWeight.w800,color:primaryBlue)),const SizedBox(height:5),Text('⭐ $rating  |  Terjual $sold',style:GoogleFonts.inter(fontSize:9,color:Colors.grey)),const SizedBox(height:7),Container(padding:const EdgeInsets.symmetric(horizontal:7,vertical:4),decoration:BoxDecoration(color:const Color(0xFFEAF7EF),borderRadius:BorderRadius.circular(7)),child:Row(mainAxisSize:MainAxisSize.min,children:[const Icon(Icons.shield_outlined,size:11,color:Color(0xFF16803A)),const SizedBox(width:3),Text('Rekber Aman',style:GoogleFonts.inter(fontSize:9,fontWeight:FontWeight.w700,color:const Color(0xFF16803A)))]) )]))])); }
