@@ -5,8 +5,9 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/social_service.dart';
+import '../services/webrtc_call_service.dart';
+import '../services/call_notification_service.dart';
 
-/// Chat antar pengguna. Berbeda dari Chat Admin lama.
 class DirectChatScreen extends StatefulWidget {
   final String otherUid;
   final String title;
@@ -19,6 +20,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   final text = TextEditingController();
   XFile? image;
   bool sending = false;
+  bool calling = false;
   String get uid => FirebaseAuth.instance.currentUser?.uid ?? '';
   String get conversationId => SocialService.instance.conversationId(widget.otherUid);
   CollectionReference<Map<String, dynamic>> get messages => FirebaseFirestore.instance.collection('direct_chats').doc(conversationId).collection('messages');
@@ -39,18 +41,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         url = await ref.getDownloadURL();
       }
       final body = text.text.trim();
-      await FirebaseFirestore.instance.collection('direct_chats').doc(conversationId).set({
-        'participants': [uid, widget.otherUid],
-        'lastMessage': body.isEmpty ? '📷 Foto' : body,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      await FirebaseFirestore.instance.collection('direct_chats').doc(conversationId).set({'participants': [uid, widget.otherUid], 'lastMessage': body.isEmpty ? '📷 Foto' : body, 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
       await messages.add({'senderId': uid, 'receiverId': widget.otherUid, 'text': body, 'imageUrl': url, 'createdAt': FieldValue.serverTimestamp()});
-      await FirebaseFirestore.instance.collection('notifications').add({
-        'userId': widget.otherUid, 'actorId': uid, 'actorName': FirebaseAuth.instance.currentUser?.email ?? 'Pengguna',
-        'type': 'message', 'referenceId': conversationId,
-        'message': body.isEmpty ? 'mengirim foto kepada Anda.' : 'mengirim pesan kepada Anda.',
-        'read': false, 'createdAt': FieldValue.serverTimestamp(),
-      });
+      await FirebaseFirestore.instance.collection('notifications').add({'userId': widget.otherUid, 'actorId': uid, 'actorName': FirebaseAuth.instance.currentUser?.email ?? 'Pengguna', 'type': 'message', 'referenceId': conversationId, 'message': body.isEmpty ? 'mengirim foto kepada Anda.' : 'mengirim pesan kepada Anda.', 'read': false, 'createdAt': FieldValue.serverTimestamp()});
       text.clear();
       if (mounted) setState(() => image = null);
     } catch (e) {
@@ -60,48 +53,49 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     }
   }
 
+  Future<void> startCall(bool video) async {
+    if (calling || widget.otherUid.isEmpty) return;
+    setState(() => calling = true);
+    try {
+      final id = await WebRtcCallService.instance.createCall(targetUid: widget.otherUid, video: video, callerName: FirebaseAuth.instance.currentUser?.displayName ?? FirebaseAuth.instance.currentUser?.email ?? 'Pengguna');
+      if (!mounted) return;
+      await Navigator.of(context).push(MaterialPageRoute(builder: (_) => CallScreen(video: video)));
+      debugPrint('Call finished: $id');
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Panggilan gagal dimulai: $e')));
+      await WebRtcCallService.instance.stop(deleteCallDocument: false);
+    } finally {
+      if (mounted) setState(() => calling = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
+      appBar: AppBar(
+        title: Text(widget.title),
+        actions: [
+          IconButton(onPressed: calling ? null : () => startCall(false), tooltip: 'Panggilan suara', icon: const Icon(Icons.call_rounded)),
+          IconButton(onPressed: calling ? null : () => startCall(true), tooltip: 'Panggilan video', icon: const Icon(Icons.videocam_rounded)),
+        ],
+      ),
       body: Column(children: [
         Expanded(child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
           stream: messages.orderBy('createdAt').snapshots(),
           builder: (_, snap) {
+            if (snap.hasError) return Center(child: Text('Chat error: ${snap.error}'));
             final docs = snap.data?.docs ?? <QueryDocumentSnapshot<Map<String, dynamic>>>[];
             if (docs.isEmpty) return const Center(child: Text('Belum ada pesan.'));
-            return ListView.builder(
-              padding: const EdgeInsets.all(12), itemCount: docs.length,
-              itemBuilder: (_, i) {
-                final d = docs[i].data();
-                final mine = d['senderId'] == uid;
-                final url = (d['imageUrl'] ?? '').toString();
-                return Align(
-                  alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.all(9),
-                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * .78),
-                    decoration: BoxDecoration(color: mine ? const Color(0xFF126BFF) : Colors.white, borderRadius: BorderRadius.circular(15)),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      if (url.isNotEmpty) ClipRRect(borderRadius: BorderRadius.circular(9), child: Image.network(url, width: 220, height: 180, fit: BoxFit.cover)),
-                      if ((d['text'] ?? '').toString().isNotEmpty) Padding(padding: EdgeInsets.only(top: url.isEmpty ? 0 : 7), child: Text(d['text'].toString(), style: TextStyle(color: mine ? Colors.white : Colors.black87))),
-                    ]),
-                  ),
-                );
-              },
-            );
+            return ListView.builder(padding: const EdgeInsets.all(12), itemCount: docs.length, itemBuilder: (_, i) {
+              final d = docs[i].data();
+              final mine = d['senderId'] == uid;
+              final url = (d['imageUrl'] ?? '').toString();
+              return Align(alignment: mine ? Alignment.centerRight : Alignment.centerLeft, child: Container(margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.all(9), constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * .78), decoration: BoxDecoration(color: mine ? const Color(0xFF126BFF) : Colors.white, borderRadius: BorderRadius.circular(15)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [if (url.isNotEmpty) ClipRRect(borderRadius: BorderRadius.circular(9), child: Image.network(url, width: 220, height: 180, fit: BoxFit.cover)), if ((d['text'] ?? '').toString().isNotEmpty) Padding(padding: EdgeInsets.only(top: url.isEmpty ? 0 : 7), child: Text(d['text'].toString(), style: TextStyle(color: mine ? Colors.white : Colors.black87))) ])));
+            });
           },
         )),
-        if (image != null) Container(color: Colors.white, padding: const EdgeInsets.all(6), child: Row(children: [
-          Image.file(File(image!.path), width: 55, height: 55, fit: BoxFit.cover),
-          const Expanded(child: Text('Foto siap dikirim')),
-          IconButton(onPressed: () => setState(() => image = null), icon: const Icon(Icons.close)),
-        ])),
-        SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(6, 5, 6, 6), child: Row(children: [
-          IconButton(onPressed: sending ? null : pick, icon: const Icon(Icons.photo_outlined, color: Color(0xFF126BFF))),
-          Expanded(child: TextField(controller: text, minLines: 1, maxLines: 4, decoration: InputDecoration(hintText: 'Tulis pesan...', filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: BorderSide.none)))),
-          IconButton(onPressed: sending ? null : send, icon: const Icon(Icons.send_rounded, color: Color(0xFF126BFF))),
-        ]))),
+        if (image != null) Container(color: Colors.white, padding: const EdgeInsets.all(6), child: Row(children: [Image.file(File(image!.path), width: 55, height: 55, fit: BoxFit.cover), const Expanded(child: Text('Foto siap dikirim')), IconButton(onPressed: () => setState(() => image = null), icon: const Icon(Icons.close))])),
+        SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(6, 5, 6, 6), child: Row(children: [IconButton(onPressed: sending ? null : pick, icon: const Icon(Icons.photo_outlined, color: Color(0xFF126BFF))), Expanded(child: TextField(controller: text, minLines: 1, maxLines: 4, decoration: InputDecoration(hintText: 'Tulis pesan...', filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: BorderSide.none)))), IconButton(onPressed: sending ? null : send, icon: const Icon(Icons.send_rounded, color: Color(0xFF126BFF))) ]))),
       ]),
     );
   }
