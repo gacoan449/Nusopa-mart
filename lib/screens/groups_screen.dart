@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/social_widgets.dart';
 
-/// Jelajah Grup + detail komunitas dalam satu modul.
+/// Jelajah Grup + detail komunitas.
+/// Transaksi/Rekber tetap berada di Profil sesuai arsitektur baru.
 class GroupsScreen extends StatefulWidget {
   const GroupsScreen({super.key});
   @override
@@ -21,7 +22,12 @@ class _GroupsScreenState extends State<GroupsScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: SocialTheme.background,
-    appBar: AppBar(backgroundColor: Colors.white, surfaceTintColor: Colors.white, title: Text(selected == null ? 'Grup & Komunitas' : selected!['name']!, style: GoogleFonts.inter(fontWeight: FontWeight.w800)), leading: selected == null ? null : IconButton(onPressed: () => setState(() => selected = null), icon: const Icon(Icons.arrow_back))),
+    appBar: AppBar(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.white,
+      title: Text(selected == null ? 'Grup & Komunitas' : selected!['name']!, style: GoogleFonts.inter(fontWeight: FontWeight.w800)),
+      leading: selected == null ? null : IconButton(onPressed: () => setState(() => selected = null), icon: const Icon(Icons.arrow_back)),
+    ),
     body: selected == null ? _discovery() : _detail(selected!),
   );
 
@@ -60,9 +66,18 @@ class _GroupsScreenState extends State<GroupsScreen> {
     const Divider(height: 1),
     Row(children: [SocialTab(label: 'Diskusi', selected: true, onTap: () {}), SocialTab(label: 'Anggota', selected: false, onTap: () {})]),
     Padding(padding: const EdgeInsets.all(12), child: Column(children: [
-      SocialCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Row(children: [SocialAvatar(imageUrl: '', radius: 19), SizedBox(width: 9), Text('Anggota komunitas', style: TextStyle(fontWeight: FontWeight.w800))]), const SizedBox(height: 10), Text('Ada yang punya rekomendasi barang bagus minggu ini?', style: TextStyle(height: 1.4)), SocialInteractionBar(likes: 18, comments: 4, onLike: () {}, onComment: () {}, onShare: () {})])),
+      SocialCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Row(children: [SocialAvatar(imageUrl: '', radius: 19), SizedBox(width: 9), Text('Anggota komunitas', style: TextStyle(fontWeight: FontWeight.w800))]),
+        const SizedBox(height: 10),
+        const Text('Ada yang punya rekomendasi barang bagus minggu ini?', style: TextStyle(height: 1.4)),
+        SocialInteractionBar(likes: 18, comments: 4, onLike: () {}, onComment: () {}, onShare: () {}),
+      ])),
       const SizedBox(height: 10),
-      SocialCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const SocialPostHeader(avatar: '', name: 'Admin Grup', time: '2 jam'), Text('Silakan berdiskusi dan jual beli sesuai aturan grup. Untuk transaksi, gunakan Rekber Nusopa.Mart.', style: GoogleFonts.inter(fontSize: 13, height: 1.45)), const SizedBox(height: 10), RekberButton(onPressed: () {}), SocialInteractionBar(likes: 35, comments: 7, onLike: () {}, onComment: () {}, onShare: () {})])),
+      SocialCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const SocialPostHeader(avatar: '', name: 'Admin Grup', time: '2 jam'),
+        Text('Silakan berdiskusi dan berbagi pengalaman jual beli sesuai aturan grup.', style: GoogleFonts.inter(fontSize: 13, height: 1.45)),
+        SocialInteractionBar(likes: 35, comments: 7, onLike: () {}, onComment: () {}, onShare: () {}),
+      ])),
     ])),
   ]);
 }
