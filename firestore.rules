@@ -4,11 +4,12 @@ service cloud.firestore {
     function signedIn(){ return request.auth != null; }
     function isAdmin(){ return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['ADMIN','admin','SUPER_ADMIN']; }
     function owner(uid){ return signedIn() && request.auth.uid == uid; }
-    match /users/{uid}{
-      allow read: if owner(uid)||isAdmin();
-      allow create: if owner(uid)&&request.resource.data.role=='BUYER';
-      allow update: if owner(uid)&&!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']);
-      allow update,delete: if isAdmin();
+    match /users/{uid}{ allow read: if owner(uid)||isAdmin(); allow create: if owner(uid)&&request.resource.data.role=='BUYER'; allow update: if owner(uid)&&!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']); allow update,delete: if isAdmin(); }
+    match /social_profiles/{uid}{
+      allow read: if signedIn();
+      allow create: if owner(uid);
+      allow update: if owner(uid)&&!request.resource.data.diff(resource.data).affectedKeys().hasAny(['rekberRating']);
+      allow delete: if owner(uid)||isAdmin();
       match /followers/{followerId}{ allow read: if signedIn(); allow create: if owner(followerId); allow delete: if owner(followerId)||owner(uid)||isAdmin(); }
       match /following/{targetId}{ allow read: if owner(uid); allow create,delete: if owner(uid); }
     }
@@ -22,7 +23,7 @@ service cloud.firestore {
     match /chats/{chatId}{ allow create: if signedIn()&&request.resource.data.ownerId==request.auth.uid; allow read,update: if signedIn()&&(resource.data.ownerId==request.auth.uid||isAdmin()); match /messages/{messageId}{ allow read: if signedIn()&&(get(/databases/$(database)/documents/chats/$(chatId)).data.ownerId==request.auth.uid||isAdmin()); allow create: if signedIn()&&request.resource.data.senderId==request.auth.uid&&(get(/databases/$(database)/documents/chats/$(chatId)).data.ownerId==request.auth.uid||isAdmin()); allow update,delete: if isAdmin(); } }
     match /posts/{postId}{ allow read: if signedIn(); allow create: if signedIn()&&request.resource.data.authorId==request.auth.uid; allow update: if signedIn()&&(resource.data.authorId==request.auth.uid||isAdmin()); allow delete: if signedIn()&&(resource.data.authorId==request.auth.uid||isAdmin()); match /likes/{userId}{ allow read: if signedIn(); allow create,delete: if owner(userId); } match /comments/{commentId}{ allow read: if signedIn(); allow create: if signedIn()&&request.resource.data.authorId==request.auth.uid; allow update,delete: if signedIn()&&(resource.data.authorId==request.auth.uid||isAdmin()); } }
     match /notifications/{notificationId}{ allow read,update: if signedIn()&&resource.data.userId==request.auth.uid; allow create: if signedIn()&&request.resource.data.actorId==request.auth.uid; }
-    match /direct_chats/{chatId}{ allow create: if signedIn() && request.auth.uid in request.resource.data.participants; allow read,update: if signedIn() && request.auth.uid in resource.data.participants; match /messages/{messageId}{ allow read: if signedIn() && request.auth.uid in get(/databases/$(database)/documents/direct_chats/$(chatId)).data.participants; allow create: if signedIn() && request.resource.data.senderId==request.auth.uid && request.auth.uid in get(/databases/$(database)/documents/direct_chats/$(chatId)).data.participants; } }
+    match /direct_chats/{chatId}{ allow create: if signedIn()&&request.auth.uid in request.resource.data.participants; allow read,update: if signedIn()&&request.auth.uid in resource.data.participants; match /messages/{messageId}{ allow read: if signedIn()&&request.auth.uid in get(/databases/$(database)/documents/direct_chats/$(chatId)).data.participants; allow create: if signedIn()&&request.resource.data.senderId==request.auth.uid&&request.auth.uid in get(/databases/$(database)/documents/direct_chats/$(chatId)).data.participants; } }
     match /groups/{groupId}{ allow read: if signedIn(); allow create: if signedIn()&&request.resource.data.ownerId==request.auth.uid; allow update,delete: if signedIn()&&(resource.data.ownerId==request.auth.uid||isAdmin()); match /members/{memberId}{ allow read: if signedIn(); allow create: if owner(memberId); allow delete: if owner(memberId)||isAdmin(); } match /posts/{postId}{ allow read: if signedIn(); allow create: if signedIn()&&request.resource.data.authorId==request.auth.uid; allow update,delete: if signedIn()&&(resource.data.authorId==request.auth.uid||isAdmin()); } }
   }
 }
