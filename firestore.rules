@@ -2,7 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn(){ return request.auth != null; }
-    function isAdmin(){ return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN'; }
+    function isAdmin(){ return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['ADMIN', 'admin', 'SUPER_ADMIN']; }
     function isOwner(uid){ return signedIn() && request.auth.uid == uid; }
 
     match /users/{uid} {
