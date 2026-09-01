@@ -156,3 +156,28 @@ jobs:
           path: build/app/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 14
+
+      - name: Build APK Release (Untuk Tes di HP)
+        working-directory: android
+        run: ./gradlew :app:assembleRelease
+
+      - name: Locate and Sync APK Output
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/app/outputs/apk/release
+          FOUND_APK="$(find . -type f -name "*release.apk" -not -name "*unaligned*" | head -n 1)"
+          if [ -z "$FOUND_APK" ]; then
+            echo "Error: File .apk tidak ditemukan!"
+            exit 1
+          fi
+          echo "Ditemukan APK pada: $FOUND_APK"
+          cp "$FOUND_APK" build/app/outputs/apk/release/app-release.apk
+
+      - name: Upload APK For Testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: nusopa-mart-testing-apk
+          path: build/app/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
