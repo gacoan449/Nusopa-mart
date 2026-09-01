@@ -124,7 +124,21 @@ jobs:
         run: flutter test
 
       - name: Build App Bundle Release
-        run: flutter build appbundle --release --verbose
+        working-directory: android
+        run: ./gradlew :app:bundleRelease
+
+      - name: Locate and Sync App Bundle Output
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/app/outputs/bundle/release
+          FOUND_AAB="$(find . -type f -name "*.aab" | head -n 1)"
+          if [ -z "$FOUND_AAB" ]; then
+            echo "Error: File .aab tidak ditemukan!"
+            exit 1
+          fi
+          echo "Ditemukan AAB pada: $FOUND_AAB"
+          cp "$FOUND_AAB" build/app/outputs/bundle/release/app-release.aab
 
       - name: Verify App Bundle
         shell: bash
