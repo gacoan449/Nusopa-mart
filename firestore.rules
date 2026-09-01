@@ -2,11 +2,70 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn(){ return request.auth != null; }
-    function isAdmin(){ return signedIn() && request.auth.token.admin == true; }
-    match /users/{uid} { allow read, create: if signedIn() && request.auth.uid == uid; allow update: if signedIn() && request.auth.uid == uid && !('role' in request.resource.data.diff(resource.data).changedKeys()); }
-    match /orders/{id} { allow create: if signedIn() && request.resource.data.buyerId == request.auth.uid; allow read: if signedIn() && (resource.data.buyerId == request.auth.uid || resource.data.sellerId == request.auth.uid || isAdmin()); allow update: if isAdmin(); }
-    match /payments/{id} { allow create: if signedIn() && request.resource.data.buyerId == request.auth.uid; allow read: if signedIn() && (resource.data.buyerId == request.auth.uid || isAdmin()); allow update: if isAdmin(); }
-    match /wallets/{id} { allow read: if signedIn() && (resource.data.sellerId == request.auth.uid || isAdmin()); allow write: if false; }
-    match /withdrawals/{id} { allow create: if signedIn() && request.resource.data.sellerId == request.auth.uid; allow read: if signedIn() && (resource.data.sellerId == request.auth.uid || isAdmin()); allow update: if isAdmin(); }
+    function isAdmin(){ return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN'; }
+    function isOwner(uid){ return signedIn() && request.auth.uid == uid; }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid) && request.resource.data.role == 'BUYER';
+      allow update: if isOwner(uid) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']);
+      allow update, delete: if isAdmin();
+    }
+
+    match /stores/{uid} {
+      allow read: if true;
+      allow create, update: if isOwner(uid) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /products/{id} {
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.sellerId == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.sellerId == request.auth.uid || isAdmin();
+    }
+
+    match /orders/{id} {
+      allow create: if signedIn() && request.resource.data.buyerId == request.auth.uid
+        && request.resource.data.status == 'MENUNGGU_PEMBAYARAN'
+        && request.resource.data.paymentStatus == 'UNPAID';
+      allow read: if signedIn() && (resource.data.buyerId == request.auth.uid || resource.data.sellerId == request.auth.uid || isAdmin());
+      allow update: if isAdmin()
+        || (signedIn() && resource.data.sellerId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','courier','trackingNumber','shippingCost','shippingProofUrl','shippedAt','updatedAt'])
+          && request.resource.data.status in ['DIPROSES','SIAP_DIKIRIM','DIKIRIM'])
+        || (signedIn() && resource.data.buyerId == request.auth.uid
+          && request.resource.data.status == 'DIKIRIM'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','receivedAt','updatedAt'])
+          && request.resource.data.status == 'SELESAI');
+    }
+
+    match /payments/{id} {
+      allow create: if signedIn() && request.resource.data.buyerId == request.auth.uid;
+      allow read: if signedIn() && (resource.data.buyerId == request.auth.uid || isAdmin());
+      allow update: if isAdmin();
+    }
+
+    match /wallets/{id} {
+      allow read: if signedIn() && (resource.data.sellerId == request.auth.uid || isAdmin());
+      allow write: if false;
+    }
+
+    match /withdrawals/{id} {
+      allow create: if signedIn() && request.resource.data.sellerId == request.auth.uid && request.resource.data.status == 'MENUNGGU_ADMIN';
+      allow read: if signedIn() && (resource.data.sellerId == request.auth.uid || isAdmin());
+      allow update: if isAdmin();
+    }
+
+    match /chats/{chatId} {
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow read: if signedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow update: if signedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      match /messages/{messageId} {
+        allow read: if signedIn() && (get(/databases/$(database)/documents/chats/$(chatId)).data.ownerId == request.auth.uid || isAdmin());
+        allow create: if signedIn() && request.resource.data.senderId == request.auth.uid
+          && (get(/databases/$(database)/documents/chats/$(chatId)).data.ownerId == request.auth.uid || isAdmin());
+        allow update, delete: if isAdmin();
+      }
+    }
   }
 }
