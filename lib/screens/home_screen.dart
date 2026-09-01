@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/order_model.dart';
 import '../widgets/custom_button.dart'; 
@@ -16,13 +18,18 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  // Warna Khas Elegan (Navy Blue & Pure White)
-  static const Color primaryBlue = Color(0xFF1A237E); // Deep Navy Blue
-  static const Color bgCanvas = Color(0xFFF8FAFC);    // Cool Soft White
+  static const Color primaryBlue = Color(0xFFFF5722);
+  static const Color bgCanvas = Color(0xFFF6F7F9);
+  final PageController _bannerController = PageController(viewportFraction: .92);
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+  int _secondsLeft = 5124;
+  Timer? _timer;
 
-  // Simulasi state data produk dari database (kosong agar seller yang mengisi)
-  List<dynamic> dynamicProducts = []; 
-  bool isLoading = false;
+  @override
+  void initState() { super.initState(); _timer = Timer.periodic(const Duration(seconds: 1), (_) { if (mounted && _secondsLeft > 0) setState(() => _secondsLeft--); }); }
+  @override
+  void dispose() { _timer?.cancel(); _bannerController.dispose(); _searchController.dispose(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) {
@@ -40,10 +47,13 @@ class _HomeScreenState extends State<HomeScreen> {
             border: Border.all(color: Colors.grey.shade200),
           ),
           child: TextField(
+            controller: _searchController,
+            onChanged: (v) => setState(() => _query = v.toLowerCase().trim()),
             decoration: InputDecoration(
-              hintText: 'Cari koleksi eksklusif...',
+              hintText: 'Cari produk, toko, atau kategori...',
               hintStyle: GoogleFonts.inter(color: Colors.grey.shade400, fontSize: 13),
-              prefixIcon: const Icon(Icons.search, color: primaryBlue, size: 20),
+              prefixIcon: const Icon(Icons.search_rounded, color: primaryBlue, size: 20),
+              suffixIcon: _query.isEmpty ? null : IconButton(icon: const Icon(Icons.close), onPressed: () { _searchController.clear(); setState(() => _query = ''); }),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(vertical: 10),
             ),
@@ -102,10 +112,10 @@ class _HomeScreenState extends State<HomeScreen> {
           selectedLabelStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 11),
           unselectedLabelStyle: GoogleFonts.inter(fontSize: 11),
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.explore_outlined), activeIcon: Icon(Icons.explore), label: 'Discover'),
-            BottomNavigationBarItem(icon: Icon(Icons.play_circle_outline), activeIcon: Icon(Icons.play_circle), label: 'Live'),
-            BottomNavigationBarItem(icon: Icon(Icons.notifications_none), activeIcon: Icon(Icons.notifications), label: 'Updates'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+            BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.storefront_outlined), activeIcon: Icon(Icons.storefront), label: 'Jual'),
+            BottomNavigationBarItem(icon: Icon(Icons.inventory_2_outlined), activeIcon: Icon(Icons.inventory_2), label: 'Pesanan'),
+            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Saya'),
           ],
         ),
       ),
@@ -126,8 +136,8 @@ class _HomeScreenState extends State<HomeScreen> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Container(
-                height: 160,
+              child: SizedBox(
+                height: 170,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
@@ -145,9 +155,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
                 child: PageView(
+                  controller: _bannerController,
                   children: [
-                    _buildBannerPlaceholder('Exclusive Pre-Fall Collection'),
-                    _buildBannerPlaceholder('Member Only Privileges'),
+                    _buildBannerPlaceholder('BELANJA AMAN DENGAN REKBER', subtitle: 'Dana transaksi mengikuti alur aman Nusopa.Mart', icon: Icons.shield_outlined),
+                    _buildBannerPlaceholder('PROMO PENGGUNA BARU', subtitle: 'Voucher dan promo dapat diatur manual oleh Admin', icon: Icons.local_offer_outlined),
+                    _buildBannerPlaceholder('JUAL BARANGMU', subtitle: 'Kirim sendiri lewat ekspedisi pilihanmu', icon: Icons.storefront_outlined),
                   ],
                 ),
               ),
@@ -161,10 +173,10 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildCategoryItem(Icons.diamond_outlined, 'Luxury'),
-                  _buildCategoryItem(Icons.checkroom_outlined, 'Boutique'),
-                  _buildCategoryItem(Icons.card_membership, 'Rewards'),
-                  _buildCategoryItem(Icons.add_business_outlined, 'Become Seller', onTap: () {
+                  _buildCategoryItem(Icons.shield_outlined, 'Rekber'),
+                  _buildCategoryItem(Icons.local_fire_department_outlined, 'Promo'),
+                  _buildCategoryItem(Icons.shopping_bag_outlined, 'Pesanan'),
+                  _buildCategoryItem(Icons.add_business_outlined, 'Jual', onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const SellerDashboard()),
@@ -182,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Text(
-                'CURATED FOR YOU',
+                'REKOMENDASI UNTUK KAMU',
                 style: GoogleFonts.inter(
                   fontSize: 13, 
                   fontWeight: FontWeight.w700, 
@@ -193,86 +205,46 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // Logika Produk Dinamis
-          if (dynamicProducts.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
-                              blurRadius: 20,
-                            )
-                          ],
-                        ),
-                        child: Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey.shade300),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Koleksi Kosong',
-                        style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: primaryBlue),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Belum ada produk eksklusif yang dirilis oleh mitra.',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade500, height: 1.5),
-                      ),
-                    ],
+          // Produk nyata dari Firestore + Skeleton Loading
+          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: FirebaseFirestore.instance.collection('products').snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: .68, crossAxisSpacing: 12, mainAxisSpacing: 12),
+                    delegate: SliverChildBuilderDelegate((_, __) => _buildSkeletonCard(), childCount: 6),
                   ),
+                );
+              }
+              if (snapshot.hasError) return SliverToBoxAdapter(child: _buildEmptyState('Produk belum dapat dimuat', Icons.cloud_off_outlined));
+              var docs = snapshot.data?.docs ?? [];
+              if (_query.isNotEmpty) docs = docs.where((d) {
+                final x = d.data();
+                return ('${x['name'] ?? x['productName'] ?? ''} ${x['category'] ?? ''} ${x['storeName'] ?? ''}').toLowerCase().contains(_query);
+              }).toList();
+              if (docs.isEmpty) return SliverToBoxAdapter(child: _buildEmptyState('Belum ada produk', Icons.inventory_2_outlined));
+              return SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: .60, crossAxisSpacing: 12, mainAxisSpacing: 12),
+                  delegate: SliverChildBuilderDelegate((context, index) => _buildProductCard(docs[index].data()), childCount: docs.length),
                 ),
-              ),
-            )
-          else
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 0.70,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    // TODO: Ganti dengan mapping dari dynamicProducts[index]
-                    return const SizedBox(); 
-                  },
-                  childCount: dynamicProducts.length, 
-                ),
-              ),
-            ),
-            
+              );
+            },
+          ),
           const SliverToBoxAdapter(child: SizedBox(height: 40)), // Spacer bawah
         ],
       ),
     );
   }
 
-  Widget _buildBannerPlaceholder(String text) {
+  Widget _buildBannerPlaceholder(String text, {String? subtitle, IconData icon = Icons.campaign_outlined}) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: GoogleFonts.inter(
-            color: Colors.white, 
-            fontWeight: FontWeight.w300, 
-            fontSize: 20,
-            letterSpacing: 1.5,
-          ),
-        ),
+        child: Row(children: [Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [Text(text, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)), const SizedBox(height: 8), Text(subtitle ?? '', style: GoogleFonts.inter(color: Colors.white70, fontSize: 11)), const SizedBox(height: 12), Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: Colors.white.withOpacity(.18), borderRadius: BorderRadius.circular(20)), child: Text('LIHAT SEKARANG', style: GoogleFonts.inter(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700))) ])), Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white.withOpacity(.15), shape: BoxShape.circle), child: Icon(icon, color: Colors.white, size: 38))]),
       ),
     );
   }
@@ -316,6 +288,11 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+
+  Widget _buildSkeletonCard() => Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)), padding: const EdgeInsets.all(10), child: Column(children:[Expanded(child: Container(color: Colors.grey.shade200)), const SizedBox(height: 10), Container(height: 10, color: Colors.grey.shade200), const SizedBox(height: 7), Container(height: 10, width: 80, color: Colors.grey.shade200)]));
+  Widget _buildEmptyState(String message, IconData icon) => Padding(padding: const EdgeInsets.all(32), child: Column(children:[Icon(icon,size:44,color:Colors.grey.shade400),const SizedBox(height:10),Text(message,style:GoogleFonts.inter(fontWeight:FontWeight.w700)),const SizedBox(height:5),Text('Produk seller akan muncul otomatis di sini.',style:GoogleFonts.inter(fontSize:11,color:Colors.grey))]));
+  Widget _buildProductCard(Map<String,dynamic> x) { final name=(x['name']??x['productName']??'Produk Nusopa').toString(); final price=x['price']??x['productPrice']??0; final image=(x['imageUrl']??x['image']??'').toString(); final sold=x['sold']??0; final rating=x['rating']??5.0; return Container(decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(16),boxShadow:[BoxShadow(color:Colors.black.withOpacity(.035),blurRadius:12)]),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Expanded(child:ClipRRect(borderRadius:const BorderRadius.vertical(top:Radius.circular(16)),child:image.isEmpty?Container(color:Colors.grey.shade100,child:const Center(child:Icon(Icons.image_outlined,color:Colors.grey,size:40))):Image.network(image,width:double.infinity,fit:BoxFit.cover,errorBuilder:(_,__,___)=>Container(color:Colors.grey.shade100,child:const Icon(Icons.broken_image_outlined))))),Padding(padding:const EdgeInsets.all(10),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(name,maxLines:2,overflow:TextOverflow.ellipsis,style:GoogleFonts.inter(fontSize:12,fontWeight:FontWeight.w600)),const SizedBox(height:6),Text('Rp$price',style:GoogleFonts.inter(fontSize:14,fontWeight:FontWeight.w800,color:primaryBlue)),const SizedBox(height:5),Text('⭐ $rating  |  Terjual $sold',style:GoogleFonts.inter(fontSize:9,color:Colors.grey)),const SizedBox(height:7),Container(padding:const EdgeInsets.symmetric(horizontal:7,vertical:4),decoration:BoxDecoration(color:const Color(0xFFEAF7EF),borderRadius:BorderRadius.circular(7)),child:Row(mainAxisSize:MainAxisSize.min,children:[const Icon(Icons.shield_outlined,size:11,color:Color(0xFF16803A)),const SizedBox(width:3),Text('Rekber Aman',style:GoogleFonts.inter(fontSize:9,fontWeight:FontWeight.w700,color:const Color(0xFF16803A)))]) )]))])); }
 
   Widget _buildVideoContent() {
     return Container(
