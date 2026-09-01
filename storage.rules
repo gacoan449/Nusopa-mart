@@ -2,17 +2,12 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     function signedIn(){ return request.auth != null; }
-    match /products/{uid}/{allPaths=**} {
-      allow read: if true;
-      allow write: if signedIn() && request.auth.uid == uid && request.resource.size < 10 * 1024 * 1024 && request.resource.contentType.matches('image/.*');
-    }
-    match /shipping/{uid}/{allPaths=**} {
-      allow read: if signedIn();
-      allow write: if signedIn() && request.auth.uid == uid && request.resource.size < 10 * 1024 * 1024 && request.resource.contentType.matches('image/.*');
-    }
-    match /chat/{uid}/{allPaths=**} {
-      allow read: if signedIn();
-      allow write: if signedIn() && request.auth.uid == uid && request.resource.size < 10 * 1024 * 1024 && request.resource.contentType.matches('image/.*');
-    }
+    match /products/{uid}/{allPaths=**} { allow read: if true; allow write: if signedIn()&&request.auth.uid==uid&&request.resource.size<10*1024*1024&&request.resource.contentType.matches('image/.*'); }
+    match /shipping/{uid}/{allPaths=**} { allow read: if signedIn(); allow write: if signedIn()&&request.auth.uid==uid&&request.resource.size<10*1024*1024&&request.resource.contentType.matches('image/.*'); }
+    match /chat/{uid}/{allPaths=**} { allow read: if signedIn(); allow write: if signedIn()&&request.auth.uid==uid&&request.resource.size<10*1024*1024&&request.resource.contentType.matches('image/.*'); }
+    match /posts/{uid}/{allPaths=**} { allow read: if signedIn(); allow write: if signedIn()&&request.auth.uid==uid&&request.resource.size<10*1024*1024&&request.resource.contentType.matches('image/.*'); }
+    match /direct_chats/{conversationId}/{allPaths=**} { allow read: if signedIn(); allow write: if signedIn()&&request.resource.size<10*1024*1024&&request.resource.contentType.matches('image/.*'); }
+    match /profiles/{uid}/{allPaths=**} { allow read: if true; allow write: if signedIn()&&request.auth.uid==uid&&request.resource.size<10*1024*1024&&request.resource.contentType.matches('image/.*'); }
+    match /groups/{uid}/{allPaths=**} { allow read: if signedIn(); allow write: if signedIn()&&request.auth.uid==uid&&request.resource.size<10*1024*1024&&request.resource.contentType.matches('image/.*'); }
   }
 }
