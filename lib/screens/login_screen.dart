@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'auth_gate.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -45,12 +44,8 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
 
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const AuthGate()),
-          (_) => false,
-        );
-      }
+      // AuthGate yang sudah menjadi root aplikasi akan otomatis
+      // menerima authStateChanges setelah Firebase sign-in berhasil.
     } on FirebaseAuthException catch (error) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message ?? 'Login gagal.')));
     } on FirebaseException catch (error) {
