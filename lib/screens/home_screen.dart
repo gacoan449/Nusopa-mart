@@ -131,7 +131,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [primaryBlue, Color(0xFF283593)],
+                    colors: [primaryBlue, Color(0xFF62B6FF)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -182,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Container(
               margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: const Color(0xFF202124), borderRadius: BorderRadius.circular(18)),
+              decoration: BoxDecoration(color: const Color(0xFF126BFF), borderRadius: BorderRadius.circular(18)),
               child: Row(children: [
                 const Icon(Icons.bolt_rounded, color: Color(0xFFFFC107), size: 32),
                 const SizedBox(width: 10),
