@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId "Nusopa.mart"
-        minSdk 23
+        minSdk 24
         // Diperbarui ke 36 agar selaras dengan versi SDK kompilasi
         targetSdk 36
         versionCode 1
