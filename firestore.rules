@@ -4,6 +4,8 @@ service cloud.firestore {
     function signedIn(){ return request.auth != null; }
     function isAdmin(){ return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['ADMIN','admin','SUPER_ADMIN']; }
     function owner(uid){ return signedIn() && request.auth.uid == uid; }
+    function callParticipant(){ return signedIn() && request.auth.uid in resource.data.participants; }
+
     match /users/{uid}{ allow read: if owner(uid)||isAdmin(); allow create: if owner(uid)&&request.resource.data.role=='BUYER'; allow update: if owner(uid)&&!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']); allow update,delete: if isAdmin(); }
     match /social_profiles/{uid}{ allow read: if signedIn(); allow create: if owner(uid); allow update: if owner(uid)&&!request.resource.data.diff(resource.data).affectedKeys().hasAny(['rekberRating','followerCount','followingCount']); allow delete: if owner(uid)||isAdmin(); match /followers/{followerId}{ allow read: if signedIn(); allow create: if owner(followerId); allow delete: if owner(followerId)||owner(uid)||isAdmin(); } match /following/{targetId}{ allow read: if owner(uid); allow create,delete: if owner(uid); } }
     match /stores/{uid}{ allow read: if true; allow create,update: if owner(uid)||isAdmin(); allow delete: if isAdmin(); }
@@ -18,6 +20,22 @@ service cloud.firestore {
     match /post_reports/{reportId}{ allow create: if signedIn()&&request.resource.data.reporterId==request.auth.uid; allow read: if isAdmin()||(signedIn()&&resource.data.reporterId==request.auth.uid); allow update,delete: if isAdmin(); }
     match /notifications/{notificationId}{ allow read,update: if signedIn()&&resource.data.userId==request.auth.uid; allow create: if signedIn()&&request.resource.data.actorId==request.auth.uid; }
     match /direct_chats/{chatId}{ allow create: if signedIn()&&request.auth.uid in request.resource.data.participants; allow read,update: if signedIn()&&request.auth.uid in resource.data.participants; match /messages/{messageId}{ allow read: if signedIn()&&request.auth.uid in get(/databases/$(database)/documents/direct_chats/$(chatId)).data.participants; allow create: if signedIn()&&request.resource.data.senderId==request.auth.uid&&request.auth.uid in get(/databases/$(database)/documents/direct_chats/$(chatId)).data.participants; } }
+
+    // WebRTC signaling only. No audio/video is stored in Firebase.
+    match /calls/{callId}{
+      allow create: if signedIn()
+        && request.resource.data.callerId == request.auth.uid
+        && request.resource.data.calleeId is string
+        && request.resource.data.calleeId != request.auth.uid
+        && request.resource.data.status == 'ringing'
+        && request.resource.data.type in ['voice','video'];
+      allow read: if signedIn() && (resource.data.callerId == request.auth.uid || resource.data.calleeId == request.auth.uid);
+      allow update: if signedIn()
+        && (resource.data.callerId == request.auth.uid || resource.data.calleeId == request.auth.uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answer','status','connectedAt','endedAt']);
+      match /callerCandidates/{candidateId}{ allow create: if signedIn() && get(/databases/$(database)/documents/calls/$(callId)).data.callerId == request.auth.uid; allow read: if signedIn() && (get(/databases/$(database)/documents/calls/$(callId)).data.callerId == request.auth.uid || get(/databases/$(database)/documents/calls/$(callId)).data.calleeId == request.auth.uid); }
+      match /calleeCandidates/{candidateId}{ allow create: if signedIn() && get(/databases/$(database)/documents/calls/$(callId)).data.calleeId == request.auth.uid; allow read: if signedIn() && (get(/databases/$(database)/documents/calls/$(callId)).data.callerId == request.auth.uid || get(/databases/$(database)/documents/calls/$(callId)).data.calleeId == request.auth.uid); }
+    }
     match /groups/{groupId}{ allow read: if signedIn(); allow create: if signedIn()&&request.resource.data.ownerId==request.auth.uid; allow update,delete: if signedIn()&&(resource.data.ownerId==request.auth.uid||isAdmin()); match /members/{memberId}{ allow read: if signedIn(); allow create: if owner(memberId); allow delete: if owner(memberId)||isAdmin(); } match /posts/{postId}{ allow read: if signedIn(); allow create: if signedIn()&&request.resource.data.authorId==request.auth.uid; allow update,delete: if signedIn()&&(resource.data.authorId==request.auth.uid||isAdmin()); } }
   }
 }
