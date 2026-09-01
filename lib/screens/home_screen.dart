@@ -1,11 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:google_fonts/google_fonts.dart';
-import '../models/order_model.dart';
-import '../widgets/custom_button.dart'; 
-import 'tracking_screen.dart';
-import 'seller_dashboard.dart'; 
 import 'admin_core.dart';
 import 'product_detail_screen.dart';
 import 'orders_screen.dart';
@@ -20,8 +17,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  static const Color primaryBlue = Color(0xFFFF5722);
-  static const Color bgCanvas = Color(0xFFF6F7F9);
+  static const Color primaryBlue = Color(0xFF126BFF);
+  static const Color bgCanvas = Color(0xFFF4F8FF);
   final PageController _bannerController = PageController(viewportFraction: .92);
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
@@ -80,25 +77,13 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: _currentIndex == 0 
-          ? _buildHomeContent() 
-          : _currentIndex == 1 
-              ? _buildVideoContent() 
-              : TrackingScreen(
-                  order: const OrderModel(
-                    orderId: "TRX-10029384",
-                    buyerId: "USER-99281", 
-                    sellerId: "TOKO-11029", 
-                    productName: "Premium Elegant Daily Wear",
-                    productImage: "",
-                    price: 185000,
-                    status: "DALAM PENGIRIMAN",
-                    namaEkspedisi: "J&T Express",
-                    nomorResi: "JT9920118273",
-                    fotoResiUrl: "https://images.unsplash.com", 
-                    linkCekLogistik: "https://jet.co.id", 
-                  ),
-                ),
+      body: _currentIndex == 0
+          ? _buildHomeContent()
+          : _currentIndex == 1
+              ? const OrdersScreen()
+              : _currentIndex == 2
+                  ? const ChatAdminScreen()
+                  : _buildAccount(),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           border: Border(top: BorderSide(color: Colors.black12, width: 0.5)),
@@ -106,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           backgroundColor: Colors.white,
-          onTap: (index) { if(index==3){ Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatAdminScreen())); } else { setState(() => _currentIndex = index); } },
+          onTap: (index) => setState(() => _currentIndex = index),
           selectedItemColor: primaryBlue, 
           unselectedItemColor: Colors.grey.shade400,
           type: BottomNavigationBarType.fixed,
@@ -115,23 +100,26 @@ class _HomeScreenState extends State<HomeScreen> {
           unselectedLabelStyle: GoogleFonts.inter(fontSize: 11),
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.storefront_outlined), activeIcon: Icon(Icons.storefront), label: 'Jual'),
             BottomNavigationBarItem(icon: Icon(Icons.inventory_2_outlined), activeIcon: Icon(Icons.inventory_2), label: 'Pesanan'),
-            BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), activeIcon: Icon(Icons.chat_bubble), label: 'Admin'),
+            BottomNavigationBarItem(icon: Icon(Icons.headset_mic_outlined), activeIcon: Icon(Icons.headset_mic), label: 'Bantuan'),
+            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Saya'),
           ],
         ),
       ),
     );
   }
 
+  Widget _buildAccount() => Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+    const CircleAvatar(radius: 34, backgroundColor: Color(0xFFEAF3FF), child: Icon(Icons.person_rounded, size: 38, color: primaryBlue)),
+    const SizedBox(height: 12), Text('Akun Nusopa.Mart', style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 18)),
+    const SizedBox(height: 8), OutlinedButton.icon(onPressed: () async { await FirebaseAuth.instance.signOut(); }, icon: const Icon(Icons.logout), label: const Text('Keluar'))
+  ]));
+
   Widget _buildHomeContent() {
     return RefreshIndicator(
       color: primaryBlue,
       backgroundColor: Colors.white,
-      onRefresh: () async {
-        // TODO: Panggil fungsi API fetch data produk di sini
-        await Future.delayed(const Duration(seconds: 1));
-      },
+      onRefresh: () async { await Future<void>.value(); },
       child: CustomScrollView(
         slivers: [
           // Banner Utama Elegan
