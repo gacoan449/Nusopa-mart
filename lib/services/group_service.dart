@@ -1,0 +1,41 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'social_service.dart';
+
+/// Data layer komunitas. Tidak menyediakan data seed/dummy.
+class GroupService {
+  GroupService._();
+  static final instance = GroupService._();
+  final db = FirebaseFirestore.instance;
+  String get uid => FirebaseAuth.instance.currentUser?.uid ?? '';
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> groups() => db.collection('groups').orderBy('createdAt', descending: true).limit(50).snapshots();
+  Stream<QuerySnapshot<Map<String, dynamic>>> members(String groupId) => db.collection('groups').doc(groupId).collection('members').snapshots();
+  Stream<QuerySnapshot<Map<String, dynamic>>> discussions(String groupId) => db.collection('groups').doc(groupId).collection('posts').orderBy('createdAt', descending: true).limit(50).snapshots();
+  Future<bool> isMember(String groupId) async => (await db.collection('groups').doc(groupId).collection('members').doc(uid).get()).exists;
+
+  Future<void> join(String groupId) async {
+    if (uid.isEmpty) return;
+    final ref = db.collection('groups').doc(groupId).collection('members').doc(uid);
+    if ((await ref.get()).exists) { await ref.delete(); } else { await ref.set({'userId': uid, 'joinedAt': FieldValue.serverTimestamp()}); }
+  }
+
+  Future<String> createDiscussion(String groupId, String text) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || text.trim().isEmpty) throw StateError('Sesi pengguna berakhir.');
+    final profile = await db.collection('users').doc(user.uid).get();
+    final p = profile.data() ?? {};
+    final ref = db.collection('groups').doc(groupId).collection('posts').doc();
+    await ref.set({'authorId': user.uid, 'authorName': (p['displayName'] ?? user.email ?? 'Pengguna').toString(), 'authorPhotoUrl': (p['photoUrl'] ?? '').toString(), 'text': text.trim(), 'likeCount': 0, 'commentCount': 0, 'createdAt': FieldValue.serverTimestamp()});
+    return ref.id;
+  }
+
+  Future<String> createGroup({required String name, required String privacy}) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || name.trim().isEmpty) throw StateError('Sesi pengguna berakhir.');
+    final ref = db.collection('groups').doc();
+    await ref.set({'name': name.trim(), 'privacy': privacy, 'ownerId': user.uid, 'createdAt': FieldValue.serverTimestamp()});
+    await ref.collection('members').doc(user.uid).set({'userId': user.uid, 'joinedAt': FieldValue.serverTimestamp(), 'role': 'owner'});
+    return ref.id;
+  }
+}
