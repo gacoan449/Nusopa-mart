@@ -1,58 +1,41 @@
-# Nusopa.Mart
+# Nusopa.Mart — Marketplace Jawa Tengah
 
-Nusopa.Mart adalah aplikasi komunitas + marketplace dengan **Rekber manual**. Aplikasi Android menggunakan Flutter dan Firebase. Dana transaksi **tidak dipindahkan melalui API, wallet aplikasi, atau saldo Firestore**; pembayaran dilakukan ke rekening/lembaga yang telah disiapkan, lalu status transaksi dikelola melalui proses verifikasi admin.
+Nusopa.Mart sedang dibangun ulang bertahap untuk menjadi marketplace lokal Jawa Tengah dengan aplikasi pelanggan, layanan kurir, seller, dan panel admin.
 
-## Arsitektur aktif
-- Flutter: aplikasi Android.
-- Firebase Authentication: akun/login.
-- Cloud Firestore: profil sosial, feed, komunitas, chat, order, bukti pembayaran, status Rekber, dan permintaan pencairan.
-- Firebase Storage: foto dan bukti pembayaran.
-- Firestore Security Rules: membatasi siapa yang boleh membaca/mengubah data.
+## Sasaran produk
+- Katalog sembako, hasil tani, sayur/buah, ayam/telur yang dikelola Nusopa.
+- Seller pihak ketiga dapat menawarkan kategori lain seperti elektronik.
+- Rencana komisi marketplace seller pihak ketiga: 3%; aturan final harus dikelola admin dan ditampilkan transparan sebelum seller bergabung.
+- Keranjang, checkout, status pesanan, pengiriman, dan riwayat transaksi.
+- Peta aplikasi menggunakan MapLibre dengan sumber data peta yang mematuhi lisensi/provider; navigasi eksternal dapat membuka Google Maps melalui URL.
+- Aplikasi kurir dengan tugas pengantaran dan pembaruan lokasi, setelah backend dan izin lokasi disiapkan.
+- Panel admin untuk produk, seller, order, kurir, komisi, dan moderasi.
 
-## Alur Rekber
-`MENUNGGU_PEMBAYARAN` → `MENUNGGU_VERIFIKASI` → `DIPROSES` → `SIAP_DIKIRIM` → `DIKIRIM` → `DITERIMA`
+## Status saat ini
+Branch `rewrite/central-java-marketplace` memulai pembaruan UI katalog Flutter. Katalog dan keranjang yang terlihat pada tahap ini masih menggunakan data contoh lokal. Login, sinkronisasi Firebase, checkout sungguhan, komisi yang dihitung server, peta langsung, GPS kurir, pembayaran, dan panel admin belum boleh dianggap selesai hanya dari tampilan ini.
 
-Pembayaran eksternal tetap harus diverifikasi admin. Status finansial tidak boleh dibuat seolah-olah berhasil hanya karena pengguna mengunggah bukti transfer.
+## Arsitektur yang dituju
+- Flutter Android untuk pelanggan; mode kurir dapat dipisah menjadi aplikasi tersendiri setelah alur inti stabil.
+- Firebase Authentication untuk identitas.
+- Cloud Firestore dengan aturan akses ketat untuk katalog, seller, order, dan status pengantaran.
+- Cloud Functions/backend tepercaya untuk menghitung harga/komisi, validasi order, dan perubahan status sensitif.
+- Firebase Storage untuk gambar produk dengan aturan ukuran/tipe file.
+- MapLibre untuk peta; layanan routing yang sesuai batas penggunaan atau server routing sendiri saat skala bertambah.
+- Google Maps Intent/URL untuk navigasi eksternal tanpa perlu menanam API key Maps hanya untuk membuka aplikasi navigasi.
 
-## Fitur sosial
-- Feed postingan.
-- Foto postingan.
-- Like.
-- Komentar.
-- Follow/follower.
-- Notifikasi aktivitas.
-- Direct chat.
-- Komunitas/grup.
-- Share/repost ke feed.
-- Pelaporan postingan untuk moderasi admin.
+## Prinsip keamanan
+- Jangan menyimpan rahasia server atau private key di aplikasi.
+- Harga, diskon, komisi 3%, pembayaran, dan status order harus divalidasi di backend, bukan dipercaya dari aplikasi klien.
+- Jangan memberi klien hak menulis saldo/wallet atau mengubah status pembayaran terverifikasi.
+- Uji aturan Firestore dan Storage dengan akun buyer, seller, kurir, dan admin yang berbeda.
+- Gunakan transaksi uji dan data non-sensitif sampai audit keamanan serta pengujian end-to-end selesai.
 
-## Fitur marketplace
-- Toko dan produk.
-- Keranjang.
-- Checkout.
-- Order dan tracking.
-- Bukti pembayaran.
-- Proses pengiriman.
-- Withdrawal seller untuk diproses admin.
+## Cara kerja pengembangan
+1. Periksa perubahan pada branch rewrite terlebih dahulu.
+2. Jalankan `flutter pub get`, `flutter analyze`, dan `flutter test` di lingkungan Flutter.
+3. Integrasikan Firebase, autentikasi, katalog dinamis, dan peran pengguna.
+4. Implementasikan order/komisi tepercaya dan aturan akses.
+5. Tambahkan alamat, peta, estimasi rute, serta alur kurir.
+6. Bangun APK pengujian dan lakukan uji end-to-end sebelum rilis.
 
-## Keamanan penting
-Client tidak diberi izin menulis collection `wallets`. Nilai order, payment status, dan perubahan status Rekber dibatasi oleh rules. Admin adalah pihak yang memverifikasi pembayaran eksternal dan menangani penyelesaian transaksi.
-
-Folder `backend/` adalah komponen API lama/eksperimental dan **bukan jalur runtime aplikasi Flutter saat ini**. Jangan menjalankan atau mengandalkannya untuk transaksi Nusopa tanpa keputusan arsitektur baru.
-
-## Build pengujian
-GitHub Actions menjalankan `flutter pub get`, `flutter analyze`, `flutter test`, build App Bundle release, dan build APK debug untuk perangkat pengujian. Artifact APK pengujian diberi nama `nusopa-mart-testing-apk`.
-
-## Checklist sebelum dibagikan
-1. Deploy `firestore.rules` terbaru ke Firebase.
-2. Pastikan Email/Password Authentication aktif.
-3. Pastikan Firebase Storage aktif.
-4. Uji akun pembeli dan seller dengan data terpisah.
-5. Uji order → upload bukti → verifikasi admin → proses → kirim → diterima.
-6. Uji bahwa user biasa tidak dapat mengubah wallet/payment verification.
-7. Uji posting → like → komentar → follow → share/repost → report.
-8. Uji direct chat dan grup.
-9. Pastikan workflow GitHub menghasilkan APK debug yang dapat dipasang di HP penguji.
-
-## Catatan
-Build uji coba bukan berarti sistem sudah siap menerima dana publik tanpa pengujian operasional, SOP admin, dan kepastian hukum/kelembagaan Rekber. Untuk malam ini, gunakan transaksi nominal uji dan data non-sensitif terlebih dahulu.
+Branch `main` tetap menjadi versi awal. Jangan menganggap aplikasi siap produksi hanya karena APK berhasil dibuat.
